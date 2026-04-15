@@ -44,14 +44,19 @@ log = logging.getLogger("quant.adapters")
 # Token-bucket rate limiter — simple, monotonic-clock based
 # ================================================================
 class TokenBucket:
-    """Refills `capacity` tokens evenly over `per_seconds`. Async-safe."""
+    """Refills `capacity` tokens evenly over `per_seconds`. Async-safe.
+
+    Starts with one token, not `capacity` — bursting the full budget at boot
+    defeats the point of per-minute provider rate limits (and would instantly
+    trip Polygon/Finnhub throttles on startup retries).
+    """
 
     def __init__(self, capacity: int, per_seconds: float) -> None:
         if capacity <= 0 or per_seconds <= 0:
             raise ValueError("capacity and per_seconds must be positive")
         self.capacity = float(capacity)
         self.per_seconds = float(per_seconds)
-        self._tokens = float(capacity)
+        self._tokens = 1.0
         self._last = time.monotonic()
         self._lock = asyncio.Lock()
 
