@@ -95,6 +95,9 @@ dev = [
     "ipython>=8.30",
 ]
 
+[project.scripts]
+quant = "quant.cli:app"
+
 [build-system]
 requires = ["setuptools>=75", "wheel"]
 build-backend = "setuptools.build_meta"
