@@ -25,9 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from quant.db.models import OrderSide, Position, Snapshot, Trade
 
 
-async def mark_to_market(
-    session: AsyncSession, user_id: uuid.UUID, marks: Mapping[str, Decimal]
-) -> int:
+async def mark_to_market(session: AsyncSession, user_id: uuid.UUID, marks: Mapping[str, Decimal]) -> int:
     """Set last_mark_price and unrealized_pnl on open positions. Returns rows updated."""
     stmt = select(Position).where(Position.user_id == user_id)
     positions = (await session.execute(stmt)).scalars().all()

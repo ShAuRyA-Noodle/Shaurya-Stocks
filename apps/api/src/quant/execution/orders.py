@@ -56,7 +56,10 @@ class OrderService:
             trade.status = OrderStatus.rejected
             log.warning(
                 "risk rejected order user=%s sym=%s qty=%s reason=%s",
-                intent.user_id, intent.symbol, intent.quantity, check.reason,
+                intent.user_id,
+                intent.symbol,
+                intent.quantity,
+                check.reason,
             )
             await self.session.commit()
             return trade
@@ -81,9 +84,7 @@ class OrderService:
 
         trade.broker_order_id = ack.broker_order_id
         trade.submitted_at = datetime.now(UTC)
-        trade.status = OrderStatus[
-            ALPACA_STATUS_MAP.get(ack.status.lower(), "SUBMITTED").lower()
-        ]
+        trade.status = OrderStatus[ALPACA_STATUS_MAP.get(ack.status.lower(), "SUBMITTED").lower()]
         await self.session.commit()
         return trade
 

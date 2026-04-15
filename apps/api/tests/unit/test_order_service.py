@@ -54,9 +54,7 @@ async def test_happy_path_submits_and_maps_status() -> None:
     sess = _fake_session()
     broker = AsyncMock()
     broker.submit = AsyncMock(
-        return_value=BrokerOrderAck(
-            broker_order_id="bk-1", client_order_id="cid", status="accepted"
-        )
+        return_value=BrokerOrderAck(broker_order_id="bk-1", client_order_id="cid", status="accepted")
     )
     svc = OrderService(sess, broker)
     svc.risk.check = AsyncMock(return_value=RiskCheckResult(True))  # type: ignore[method-assign]

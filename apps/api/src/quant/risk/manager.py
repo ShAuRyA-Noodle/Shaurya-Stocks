@@ -131,9 +131,7 @@ class RiskManager:
         today_pnl = await self._today_realized_pnl(intent.user_id)
         loss_limit = -equity * Decimal(str(settings.daily_loss_limit_pct))
         if today_pnl < loss_limit:
-            return RiskCheckResult(
-                False, f"daily loss {today_pnl:.2f} exceeded limit {loss_limit:.2f}"
-            )
+            return RiskCheckResult(False, f"daily loss {today_pnl:.2f} exceeded limit {loss_limit:.2f}")
 
         # Drawdown kill.
         drawdown = await self._current_drawdown(intent.user_id)
@@ -160,9 +158,7 @@ class RiskManager:
         return int((await self.session.execute(stmt)).scalar() or 0)
 
     async def _has_position(self, user_id: str, symbol: str) -> bool:
-        stmt = select(Position.id).where(
-            Position.user_id == user_id, Position.symbol == symbol
-        )
+        stmt = select(Position.id).where(Position.user_id == user_id, Position.symbol == symbol)
         return (await self.session.execute(stmt)).scalar_one_or_none() is not None
 
     async def _sector_of(self, symbol: str) -> str | None:
@@ -190,9 +186,7 @@ class RiskManager:
     async def _current_drawdown(self, user_id: str) -> Decimal:
         """(peak_equity - current_equity) / peak_equity over trailing 90 days."""
         since = date.today() - timedelta(days=90)
-        stmt = select(Snapshot.total_equity).where(
-            Snapshot.user_id == user_id, Snapshot.date >= since
-        )
+        stmt = select(Snapshot.total_equity).where(Snapshot.user_id == user_id, Snapshot.date >= since)
         values = [Decimal(str(v)) for v in (await self.session.execute(stmt)).scalars().all()]
         if not values:
             return Decimal("0")

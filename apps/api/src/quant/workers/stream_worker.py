@@ -30,10 +30,14 @@ log = logging.getLogger("quant.workers.stream")
 async def _load_symbols() -> list[str]:
     async for session in get_session():
         rows = (
-            await session.execute(
-                select(Ticker.symbol).where(Ticker.is_active.is_(True)).order_by(Ticker.symbol)
+            (
+                await session.execute(
+                    select(Ticker.symbol).where(Ticker.is_active.is_(True)).order_by(Ticker.symbol)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         return list(rows)
     return []
 

@@ -200,12 +200,7 @@ async def get_account(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AccountOut:
-    stmt = (
-        select(Snapshot)
-        .where(Snapshot.user_id == user.id)
-        .order_by(Snapshot.date.desc())
-        .limit(1)
-    )
+    stmt = select(Snapshot).where(Snapshot.user_id == user.id).order_by(Snapshot.date.desc()).limit(1)
     s = (await db.execute(stmt)).scalar_one_or_none()
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no snapshots yet — trade first")
