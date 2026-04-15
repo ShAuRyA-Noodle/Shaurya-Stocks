@@ -21,6 +21,7 @@ from quant import __version__
 from quant.api.v1 import api_router
 from quant.config import settings
 from quant.db import dispose_engines
+from quant.monitoring.metrics import install_metrics
 
 
 # ---------------------------------------------------------------
@@ -101,6 +102,7 @@ def create_app() -> FastAPI:
         return {"status": "ready"}
 
     app.include_router(api_router)
+    install_metrics(app)
 
     return app
 
