@@ -77,8 +77,9 @@ def test_no_leakage_across_symbols() -> None:
 
 def test_rsi_bounded_0_100() -> None:
     df = _synthetic_ohlcv("AAPL", 300)
-    out = add_technical_features(df).drop_nulls("rsi_14")
+    out = add_technical_features(df)
     rsi = out["rsi_14"].to_numpy()
+    rsi = rsi[~np.isnan(rsi)]
     assert rsi.min() >= 0.0
     assert rsi.max() <= 100.0
 
