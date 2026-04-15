@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Sparkles } from "lucide-react"
 import { glassPanel, glassPanelHover, neonGlowCyan } from "@/lib/cn-utils"
+import { mulberry32 } from "@/lib/prng"
 
 export function HeroSection() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [signalsCount, setSignalsCount] = useState(1247892)
+  const rng = useRef(mulberry32(0xC0FFEE))
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -44,15 +46,15 @@ export function HeroSection() {
     // Initialize particles
     for (let i = 0; i < particleCount; i++) {
       particles.push({
-        x: (Math.random() - 0.5) * canvas.width * 2,
-        y: (Math.random() - 0.5) * canvas.height * 2,
-        z: Math.random() * 1000,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        vz: (Math.random() - 0.5) * 2,
-        size: Math.random() * 2 + 1,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        alpha: Math.random() * 0.5 + 0.3,
+        x: (rng.current() - 0.5) * canvas.width * 2,
+        y: (rng.current() - 0.5) * canvas.height * 2,
+        z: rng.current() * 1000,
+        vx: (rng.current() - 0.5) * 0.5,
+        vy: (rng.current() - 0.5) * 0.5,
+        vz: (rng.current() - 0.5) * 2,
+        size: rng.current() * 2 + 1,
+        color: colors[Math.floor(rng.current() * colors.length)],
+        alpha: rng.current() * 0.5 + 0.3,
       })
     }
 
@@ -89,13 +91,13 @@ export function HeroSection() {
         // Reset particles that go off screen
         if (particle.z > 1000 || particle.z < 0) {
           particle.z = 0
-          particle.x = (Math.random() - 0.5) * canvas.width * 2
-          particle.y = (Math.random() - 0.5) * canvas.height * 2
+          particle.x = (rng.current() - 0.5) * canvas.width * 2
+          particle.y = (rng.current() - 0.5) * canvas.height * 2
         }
 
         if (Math.abs(particle.x) > canvas.width || Math.abs(particle.y) > canvas.height) {
-          particle.x = (Math.random() - 0.5) * canvas.width * 2
-          particle.y = (Math.random() - 0.5) * canvas.height * 2
+          particle.x = (rng.current() - 0.5) * canvas.width * 2
+          particle.y = (rng.current() - 0.5) * canvas.height * 2
         }
 
         // 3D projection
@@ -135,7 +137,7 @@ export function HeroSection() {
   // Animate signals counter
   useEffect(() => {
     const interval = setInterval(() => {
-      setSignalsCount((prev) => prev + Math.floor(Math.random() * 5 + 1))
+      setSignalsCount((prev) => prev + Math.floor(rng.current() * 5 + 1)) // cosmetic counter
     }, 2000)
     return () => clearInterval(interval)
   }, [])

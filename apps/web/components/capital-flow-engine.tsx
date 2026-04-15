@@ -40,44 +40,9 @@ export function CapitalFlowEngine() {
   const [drawdownPressure, setDrawdownPressure] = useState(12)
   const [protectionLevel, setProtectionLevel] = useState(85)
 
-  useEffect(() => {
-    // Simulate live capital flow updates
-    const interval = setInterval(() => {
-      setFlowSignals((prev) =>
-        prev.map((signal) => ({
-          ...signal,
-          pull: Math.max(-1, Math.min(1, signal.pull + (Math.random() - 0.5) * 0.2)),
-          active: Math.abs(signal.pull) > 0.15,
-        }))
-      )
-
-      setFlowSignals((current) => {
-        const netPull = current.reduce((sum, s) => sum + (s.active ? s.pull : 0), 0)
-        const riskPush = current.filter(s => s.active && s.pull < 0).reduce((sum, s) => sum + Math.abs(s.pull), 0)
-        
-        setCapitalPool((prev) => {
-          const deploymentRatio = Math.max(0, Math.min(0.3, netPull * 0.15))
-          const newDeployed = prev.total * deploymentRatio
-          const newIdle = prev.total - newDeployed
-          const newAtRisk = newDeployed * Math.min(1, riskPush * 0.8)
-
-          return {
-            ...prev,
-            deployed: newDeployed,
-            idle: newIdle,
-            atRisk: newAtRisk,
-          }
-        })
-
-        setDrawdownPressure(Math.max(0, Math.min(100, riskPush * 50)))
-        setProtectionLevel(Math.max(0, Math.min(100, 100 - riskPush * 30)))
-
-        return current
-      })
-    }, 2000)
-
-    return () => clearInterval(interval)
-  }, [])
+  // Capital-flow state will stream from the backend /portfolio/flow endpoint
+  // once it lands. Until then, the component renders its static initial state
+  // rather than fabricating drift.
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -114,8 +79,8 @@ export function CapitalFlowEngine() {
       ctx.clearRect(0, 0, width, height)
       time += 0.02
 
-      // Create particles for capital flow
-      if (Math.random() > 0.7) {
+      // Create particles for capital flow (time-gated rather than random)
+      if (Math.floor(time * 5) % 3 === 0) {
         flowSignals.forEach((signal, idx) => {
           if (signal.active) {
             const signalRadius = baseRadius * 2.5

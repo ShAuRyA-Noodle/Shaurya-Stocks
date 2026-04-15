@@ -3,26 +3,35 @@
 import { useEffect, useState } from "react"
 import { Activity } from "lucide-react"
 import { glassPanelHover, neonGlowGreen, neonGlowRed } from "@/lib/cn-utils"
+import { apiGet } from "@/lib/api"
 
 export function VolatilityMeter() {
-  const [volatility, setVolatility] = useState(42)
+  const [volatility, setVolatility] = useState<number | null>(null)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setVolatility((prev) => Math.max(20, Math.min(80, prev + (Math.random() - 0.5) * 10)))
-    }, 3000)
-    return () => clearInterval(interval)
+    let cancelled = false
+    const fetchVix = async () => {
+      try {
+        const res = await apiGet("/macro/latest?series=VIXCLS")
+        if (!cancelled && typeof res?.value === "number") setVolatility(res.value)
+      } catch { /* keep last known */ }
+    }
+    fetchVix()
+    const interval = setInterval(fetchVix, 60_000)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
+  const v = volatility ?? 0
   const getColor = () => {
-    if (volatility < 35) return "text-chart-2"
-    if (volatility < 60) return "text-chart-4"
+    if (volatility == null) return "text-muted-foreground"
+    if (v < 35) return "text-chart-2"
+    if (v < 60) return "text-chart-4"
     return "text-chart-3"
   }
 
   const getGlow = () => {
-    if (volatility < 35) return neonGlowGreen()
-    if (volatility < 60) return ""
+    if (volatility == null || v >= 35 && v < 60) return ""
+    if (v < 35) return neonGlowGreen()
     return neonGlowRed()
   }
 
@@ -33,7 +42,9 @@ export function VolatilityMeter() {
         Market Volatility
       </h3>
       <div className="flex flex-col items-center justify-center py-4">
-        <div className={`text-6xl font-bold font-mono tabular-nums mb-2 ${getColor()}`}>{volatility.toFixed(1)}</div>
+        <div className={`text-6xl font-bold font-mono tabular-nums mb-2 ${getColor()}`}>
+          {volatility == null ? "—" : volatility.toFixed(1)}
+        </div>
         <div className="text-muted-foreground font-mono text-sm">VIX Index</div>
         {/* Circular progress */}
         <div className="relative mt-6 w-32 h-32">
@@ -46,14 +57,14 @@ export function VolatilityMeter() {
               stroke="currentColor"
               strokeWidth="8"
               fill="none"
-              strokeDasharray={`${(volatility / 100) * 351.86} 351.86`}
+              strokeDasharray={`${(v / 100) * 351.86} 351.86`}
               className={`${getColor()} transition-all duration-500`}
               strokeLinecap="round"
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-xs font-mono text-muted-foreground">
-              {volatility < 35 ? "LOW" : volatility < 60 ? "MODERATE" : "HIGH"}
+              {volatility == null ? "—" : v < 35 ? "LOW" : v < 60 ? "MODERATE" : "HIGH"}
             </div>
           </div>
         </div>

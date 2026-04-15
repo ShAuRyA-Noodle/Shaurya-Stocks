@@ -7,7 +7,7 @@ import { glassPanel } from "@/lib/cn-utils"
 interface Signal {
   id: string
   symbol: string
-  type: "BUY" | "SELL"
+  type: "BUY" | "SELL" | "HOLD"
   confidence: number
   entry: number
   target: number

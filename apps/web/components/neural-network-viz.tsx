@@ -34,47 +34,10 @@ export function NeuralNetworkViz() {
     ],
   })
 
-  const [pulseIntensity, setPulseIntensity] = useState(0)
 
-  useEffect(() => {
-    // Simulate live signal updates
-    const interval = setInterval(() => {
-      setDecisionState((prev) => {
-        const newSignals = prev.signals.map((signal) => ({
-          ...signal,
-          value: signal.value + (Math.random() - 0.5) * 0.1,
-          active: Math.abs(signal.value) > 0.15,
-        }))
-
-        const ensembleScore = newSignals.reduce((sum, s) => sum + s.value * s.weight, 0)
-        const confidence = Math.min(95, Math.max(30, 50 + Math.abs(ensembleScore) * 100))
-
-        let decision: "BUY" | "HOLD" | "SELL" = "HOLD"
-        if (ensembleScore > 0.25 && confidence > 65) decision = "BUY"
-        else if (ensembleScore < -0.25 && confidence > 65) decision = "SELL"
-
-        const volatilitySignal = newSignals.find((s) => s.name === "Volatility Filter")
-        let riskState: "LOW" | "MEDIUM" | "HIGH" | "EXTREME" = "MEDIUM"
-        if (volatilitySignal) {
-          if (Math.abs(volatilitySignal.value) > 0.6) riskState = "EXTREME"
-          else if (Math.abs(volatilitySignal.value) > 0.4) riskState = "HIGH"
-          else if (Math.abs(volatilitySignal.value) > 0.2) riskState = "MEDIUM"
-          else riskState = "LOW"
-        }
-
-        return {
-          ...prev,
-          signals: newSignals,
-          decision,
-          confidence: Math.round(confidence),
-          riskState,
-          capitalDeployed: decision === "HOLD" ? 0 : Math.round(confidence * 0.8),
-        }
-      })
-    }, 2000)
-
-    return () => clearInterval(interval)
-  }, [])
+  // Live ensemble decisions come from the backend once the /signals/decision
+  // endpoint ships. Until then, render the initial static state rather than
+  // fabricating drift.
 
   useEffect(() => {
     const canvas = canvasRef.current

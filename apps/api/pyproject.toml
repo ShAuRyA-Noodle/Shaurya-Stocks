@@ -3,7 +3,6 @@ name = "quant-api"
 version = "0.1.0"
 description = "Quant Signal Platform — FastAPI backend"
 requires-python = ">=3.12"
-readme = "../../README.md"
 
 dependencies = [
     # --- web ---

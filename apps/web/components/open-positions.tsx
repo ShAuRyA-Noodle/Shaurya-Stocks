@@ -14,70 +14,59 @@ interface Position {
 
 export function OpenPositions() {
   const [positions, setPositions] = useState<Position[]>([])
-  const [mockCurrentPrices, setMockCurrentPrices] = useState<Record<string, number>>({})
+  const [currentPrices, setCurrentPrices] = useState<Record<string, number>>({})
   const [totalValue, setTotalValue] = useState(0)
   const [totalPnL, setTotalPnL] = useState(0)
 
   useEffect(() => {
     apiGet("/positions").then((res) => {
-      const fetchedPositions = res.positions ?? []
+      const fetchedPositions: Position[] = res.positions ?? []
       setPositions(fetchedPositions)
 
-      // Mock current prices (in production, fetch real-time prices)
       const prices: Record<string, number> = {}
-      let totalVal = 0
-      let totalProfit = 0
-
-      fetchedPositions.forEach((p: Position) => {
-        const currentPrice = p.entry_price * (1 + (Math.random() - 0.3) * 0.1)
-        prices[p.symbol] = currentPrice
-        const positionValue = currentPrice * p.quantity
-        const pnl = (currentPrice - p.entry_price) * p.quantity
-        totalVal += positionValue
-        totalProfit += pnl
-      })
-
-      setMockCurrentPrices(prices)
-      setTotalValue(totalVal)
-      setTotalPnL(totalProfit)
+      fetchedPositions.forEach((p) => { prices[p.symbol] = p.entry_price })
+      setCurrentPrices(prices)
     })
   }, [])
 
   useEffect(() => {
-    // Update prices every 2 seconds to simulate live data
-    const interval = setInterval(() => {
-      setMockCurrentPrices(prev => {
-        const updated = { ...prev }
-        let totalVal = 0
-        let totalProfit = 0
-
-        positions.forEach(p => {
-          if (updated[p.symbol]) {
-            updated[p.symbol] = updated[p.symbol] * (1 + (Math.random() - 0.5) * 0.005)
-            const positionValue = updated[p.symbol] * p.quantity
-            const pnl = (updated[p.symbol] - p.entry_price) * p.quantity
-            totalVal += positionValue
-            totalProfit += pnl
+    if (positions.length === 0) return
+    let cancelled = false
+    const poll = async () => {
+      const entries = await Promise.all(
+        positions.map(async (p) => {
+          try {
+            const res = await apiGet(`/quotes/${p.symbol}`)
+            return [p.symbol, res?.price ?? p.entry_price] as const
+          } catch {
+            return [p.symbol, p.entry_price] as const
           }
         })
-
-        setTotalValue(totalVal)
-        setTotalPnL(totalProfit)
-
-        return updated
+      )
+      if (cancelled) return
+      const prices = Object.fromEntries(entries)
+      setCurrentPrices(prices)
+      let totalVal = 0, totalProfit = 0
+      positions.forEach((p) => {
+        const price = prices[p.symbol] ?? p.entry_price
+        totalVal += price * p.quantity
+        totalProfit += (price - p.entry_price) * p.quantity
       })
-    }, 2000)
-
-    return () => clearInterval(interval)
+      setTotalValue(totalVal)
+      setTotalPnL(totalProfit)
+    }
+    poll()
+    const interval = setInterval(poll, 5000)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [positions])
 
   const calculatePnL = (position: Position) => {
-    const currentPrice = mockCurrentPrices[position.symbol] || position.entry_price
+    const currentPrice = currentPrices[position.symbol] ?? position.entry_price
     return (currentPrice - position.entry_price) * position.quantity
   }
 
   const calculatePnLPercent = (position: Position) => {
-    const currentPrice = mockCurrentPrices[position.symbol] || position.entry_price
+    const currentPrice = currentPrices[position.symbol] ?? position.entry_price
     return ((currentPrice - position.entry_price) / position.entry_price) * 100
   }
 
@@ -166,7 +155,7 @@ export function OpenPositions() {
         ) : (
           <div className="space-y-3 overflow-auto h-full custom-scrollbar pr-2">
             {positions.map((position, i) => {
-              const currentPrice = mockCurrentPrices[position.symbol] || position.entry_price
+              const currentPrice = currentPrices[position.symbol] || position.entry_price
               const pnl = calculatePnL(position)
               const pnlPercent = calculatePnLPercent(position)
               const isProfit = pnl >= 0
