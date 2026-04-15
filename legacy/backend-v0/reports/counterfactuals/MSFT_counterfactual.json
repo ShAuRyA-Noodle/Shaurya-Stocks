@@ -1,0 +1,1 @@
+{"symbol":"MSFT","current_signal":"SELL","counterfactual":{"feature":"volatility_20","current_value":0.0142,"counterfactual_value":0.0144,"new_signal":"HOLD"},"interpretation":"Decision is locally sensitive to feature changes."}

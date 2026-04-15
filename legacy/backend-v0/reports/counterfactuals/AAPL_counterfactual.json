@@ -1,0 +1,1 @@
+{"symbol":"AAPL","current_signal":"HOLD","counterfactual":{"feature":"return_1d","current_value":-0.015,"counterfactual_value":-0.0151,"new_signal":"SELL"},"interpretation":"Decision is locally sensitive to feature changes."}

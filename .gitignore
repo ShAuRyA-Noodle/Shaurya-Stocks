@@ -1,0 +1,97 @@
+# ============================================================
+# QUANT PLATFORM — .gitignore
+# ============================================================
+
+# ---- Secrets ----
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+credentials/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+*.egg-info/
+*.egg
+dist/
+build/
+pip-wheel-metadata/
+
+# ---- Node / Next.js ----
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+
+# ---- Data (tracked via DVC / MinIO, not git) ----
+data/raw/*
+data/processed/*
+data/legacy/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/legacy/.gitkeep
+*.parquet
+*.feather
+
+# ---- Models (tracked via MLflow) ----
+apps/api/models/*.pkl
+apps/api/models/*.joblib
+apps/api/models/*.onnx
+mlruns/
+mlflow.db
+
+# ---- Logs ----
+logs/
+*.log
+
+# ---- Docker volumes (local) ----
+.docker-data/
+infra/postgres/data/
+infra/redis/data/
+infra/minio/data/
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.iml
+
+# ---- Test artifacts ----
+.pytest_cache/
+test-results/
+coverage.xml
+
+# ---- Legacy project dirs (pre-monorepo consolidation) ----
+Finance_Project/.venv/
+Finance_Project/__pycache__/
+Finance_Project/.pytest_cache/
+ShAuRyA_Finance/node_modules/
+ShAuRyA_Finance/.next/
+Dataset_Finance/

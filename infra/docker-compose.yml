@@ -1,0 +1,252 @@
+# ============================================================
+# QUANT PLATFORM — LOCAL DEV STACK
+# ============================================================
+# Usage (from repo root):
+#   make up           # start everything
+#   make down         # stop
+#   make logs s=api   # tail logs for one service
+# ============================================================
+
+name: quant-platform
+
+services:
+
+  # -----------------------------------------------------------
+  # POSTGRES + TIMESCALEDB
+  # Hypertables for ohlcv, features, signals, snapshots
+  # -----------------------------------------------------------
+  postgres:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: quant-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TS_TUNE_MEMORY: 2GB
+      TS_TUNE_NUM_CPUS: 4
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # REDIS
+  # Cache, rate limit, pub/sub, streams (market data fan-out)
+  # -----------------------------------------------------------
+  redis:
+    image: redis:7.4-alpine
+    container_name: quant-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # MINIO — S3-compatible object store for models + reports
+  # -----------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: quant-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console UI
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [quant]
+
+  # Auto-create MinIO buckets on first run
+  minio-init:
+    image: minio/mc:latest
+    container_name: quant-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_MODELS: ${MINIO_BUCKET_MODELS}
+      MINIO_BUCKET_REPORTS: ${MINIO_BUCKET_REPORTS}
+      MINIO_BUCKET_DATA: ${MINIO_BUCKET_DATA}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 $$MINIO_ACCESS_KEY $$MINIO_SECRET_KEY;
+        mc mb --ignore-existing local/$$MINIO_BUCKET_MODELS;
+        mc mb --ignore-existing local/$$MINIO_BUCKET_REPORTS;
+        mc mb --ignore-existing local/$$MINIO_BUCKET_DATA;
+        mc anonymous set download local/$$MINIO_BUCKET_REPORTS;
+        echo "MinIO buckets ready";
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # MLFLOW — model registry + experiment tracking
+  # Backed by Postgres (metadata) + MinIO (artifacts)
+  # -----------------------------------------------------------
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.18.0
+    container_name: quant-mlflow
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
+    command: >
+      sh -c "
+        pip install --no-cache-dir psycopg2-binary boto3 &&
+        mlflow server
+        --backend-store-uri postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+        --default-artifact-root s3://${MINIO_BUCKET_MODELS}/mlflow
+        --host 0.0.0.0
+        --port 5000
+      "
+    ports:
+      - "5000:5000"
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # ADMINER — Postgres GUI at localhost:8080
+  # -----------------------------------------------------------
+  adminer:
+    image: adminer:latest
+    container_name: quant-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # API — FastAPI backend
+  # -----------------------------------------------------------
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: quant-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file:
+      - ../.env.local
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      MINIO_ENDPOINT: minio:9000
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../apps/api/src:/app/src
+      - ../apps/api/alembic:/app/alembic
+      - ../data:/app/data
+    command: >
+      uvicorn quant.main:app
+        --host 0.0.0.0
+        --port 8000
+        --reload
+        --reload-dir /app/src
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # WEB — Next.js frontend
+  # -----------------------------------------------------------
+  web:
+    image: node:22-alpine
+    container_name: quant-web
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      api:
+        condition: service_started
+    env_file:
+      - ../.env.local
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/v1
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/web:/app
+      - web_node_modules:/app/node_modules
+    command: >
+      sh -c "
+        if [ ! -d node_modules/next ]; then
+          echo 'Installing web deps...';
+          npm install --no-audit --no-fund;
+        fi;
+        npm run dev
+      "
+    networks: [quant]
+
+  # -----------------------------------------------------------
+  # PREFECT — workflow orchestration (ingest / train / EOD)
+  # -----------------------------------------------------------
+  prefect:
+    image: prefecthq/prefect:3-latest
+    container_name: quant-prefect
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    networks: [quant]
+
+# =============================================================
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  web_node_modules:
+
+networks:
+  quant:
+    driver: bridge
