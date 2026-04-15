@@ -92,8 +92,10 @@ class HttpAdapter(ABC):
             base_url=self.base_url,
             timeout=httpx.Timeout(self.timeout_seconds),
             limits=httpx.Limits(max_connections=50, max_keepalive_connections=20),
-            headers=self.default_headers(),
         )
+        # Apply adapter auth/accept headers whether we own the client or the
+        # caller injected one (tests inject a MockTransport-backed client).
+        self._client.headers.update(self.default_headers())
         self._bucket = TokenBucket(self.calls_per_minute, per_seconds=60.0)
 
     # ---------- subclass hooks ----------

@@ -15,6 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from quant.config import settings
+from quant.db.models import Base
 from quant.main import app
 
 pytestmark = pytest.mark.asyncio
@@ -35,6 +36,13 @@ async def _db_reachable() -> bool:
 async def _require_db() -> None:
     if not await _db_reachable():
         pytest.skip("database not reachable", allow_module_level=True)
+    # Create auth/market/etc. schemas + all tables so auth endpoints work.
+    eng = create_async_engine(settings.database_url)
+    async with eng.begin() as conn:
+        for schema in ("auth", "market", "model", "portfolio", "news", "macro", "feature", "signal"):
+            await conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+        await conn.run_sync(Base.metadata.create_all)
+    await eng.dispose()
 
 
 @pytest.fixture

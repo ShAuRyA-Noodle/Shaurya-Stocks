@@ -20,6 +20,7 @@ dependencies = [
 
     # --- auth ---
     "passlib[bcrypt]>=1.7.4",
+    "bcrypt<5",              # passlib 1.7.x incompatible with bcrypt 5.x (raises on any input)
     "python-jose[cryptography]>=3.3",
 
     # --- db ---
