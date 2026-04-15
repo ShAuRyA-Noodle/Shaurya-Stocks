@@ -20,7 +20,7 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from types import TracebackType
-from typing import Any
+from typing import Any, Self
 
 import httpx
 from tenacity import (
@@ -106,7 +106,7 @@ class HttpAdapter(ABC):
         return dict(params or {})
 
     # ---------- context manager ----------
-    async def __aenter__(self) -> HttpAdapter:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(

@@ -13,7 +13,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -31,12 +31,12 @@ _pwd_context = CryptContext(
 
 
 def hash_password(plain: str) -> str:
-    return _pwd_context.hash(plain)
+    return cast(str, _pwd_context.hash(plain))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     try:
-        return _pwd_context.verify(plain, hashed)
+        return cast(bool, _pwd_context.verify(plain, hashed))
     except ValueError:
         return False
 
@@ -66,10 +66,13 @@ def create_access_token(
     }
     if extra_claims:
         payload.update(extra_claims)
-    return jwt.encode(
-        payload,
-        settings.jwt_secret_key.get_secret_value(),
-        algorithm=settings.jwt_algorithm,
+    return cast(
+        str,
+        jwt.encode(
+            payload,
+            settings.jwt_secret_key.get_secret_value(),
+            algorithm=settings.jwt_algorithm,
+        ),
     )
 
 
@@ -84,7 +87,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
         raise TokenError(f"invalid token: {e}") from e
     if payload.get("typ") != "access":
         raise TokenError("wrong token type")
-    return payload
+    return cast(dict[str, Any], payload)
 
 
 # ---------------------------------------------------------------

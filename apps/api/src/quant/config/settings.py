@@ -219,7 +219,7 @@ class Settings(BaseSettings):
 # ---------------------------------------------------------------
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()  # type: ignore[call-arg]
+    return Settings()
 
 
 # Eager singleton for normal imports

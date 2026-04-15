@@ -145,6 +145,10 @@ strict = true
 warn_unreachable = true
 warn_unused_ignores = true
 plugins = ["pydantic.mypy"]
+# JSON payloads from provider APIs are untyped by nature; no-any-return would
+# force a cast() on every adapter method. Disable globally — typing discipline
+# is preserved at call sites via explicit annotations.
+disable_error_code = ["no-any-return"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -158,6 +162,12 @@ module = [
     "polygon.*",
     "alpaca.*",
     "sec_api.*",
+    "jose",
+    "jose.*",
+    "passlib",
+    "passlib.*",
+    "prefect",
+    "prefect.*",
 ]
 ignore_missing_imports = true
 

@@ -22,6 +22,7 @@ import enum
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     BigInteger,
@@ -130,7 +131,7 @@ class Ticker(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     listed_at: Mapped[date | None] = mapped_column(Date)
     delisted_at: Mapped[date | None] = mapped_column(Date)
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -241,7 +242,7 @@ class Feature(Base):
     symbol: Mapped[str] = mapped_column(String(16), primary_key=True, nullable=False)
     feature_set_version: Mapped[str] = mapped_column(String(32), primary_key=True, nullable=False)
 
-    features: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    features: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     # e.g. {"ret_1d": 0.012, "rsi_14": 58.2, "sentiment_news_1d": 0.34, ...}
 
     point_in_time_safe: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -263,12 +264,12 @@ class ModelRun(Base):
     family: Mapped[str] = mapped_column(String(32), nullable=False)  # ts | cs | regime | meta
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     feature_set_version: Mapped[str] = mapped_column(String(32), nullable=False)
-    symbols: Mapped[list] = mapped_column(JSONB, default=list)  # which symbols trained
+    symbols: Mapped[list[Any]] = mapped_column(JSONB, default=list)  # which symbols trained
     train_start: Mapped[date] = mapped_column(Date, nullable=False)
     train_end: Mapped[date] = mapped_column(Date, nullable=False)
     cv_scheme: Mapped[str] = mapped_column(String(64), nullable=False)  # purged_kfold, walk_forward
-    metrics: Mapped[dict] = mapped_column(JSONB, default=dict)
-    hyperparams: Mapped[dict] = mapped_column(JSONB, default=dict)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    hyperparams: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -313,7 +314,7 @@ class Signal(Base):
     stop_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     horizon_days: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
 
-    shap_values: Mapped[dict | None] = mapped_column(JSONB)  # {"rsi_14": -0.12, ...}
+    shap_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB)  # {"rsi_14": -0.12, ...}
     risk_level: Mapped[str | None] = mapped_column(String(16))  # LOW / MEDIUM / HIGH
     explanation: Mapped[str | None] = mapped_column(Text)  # Groq-generated plain-english
 
@@ -452,7 +453,7 @@ class NewsArticle(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    symbols: Mapped[list] = mapped_column(JSONB, default=list)
+    symbols: Mapped[list[Any]] = mapped_column(JSONB, default=list)
 
     sentiment_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # -1..1
     sentiment_label: Mapped[str | None] = mapped_column(String(16))  # bearish/neutral/bullish
