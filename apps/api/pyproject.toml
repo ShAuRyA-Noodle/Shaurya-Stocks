@@ -132,6 +132,9 @@ ignore = [
     "T201",               # allow print in scripts/workers
     "B008",               # FastAPI Depends()/File() in defaults is canonical
     "RUF012",             # SQLAlchemy __table_args__ = (…) is mutable by design
+    "RUF001",             # scientific docs use unicode (×, σ, μ, ∈, …) deliberately
+    "RUF002",             # same — ambiguous-char checks fire on Greek letters in math
+    "RUF003",             # same, for comments
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -169,6 +172,9 @@ module = [
     "passlib.*",
     "prefect",
     "prefect.*",
+    "sklearn.*",
+    "mlflow",
+    "mlflow.*",
 ]
 ignore_missing_imports = true
 
