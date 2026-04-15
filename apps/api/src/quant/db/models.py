@@ -50,13 +50,13 @@ from quant.db.base import Base
 # ================================================================
 # AUTH
 # ================================================================
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     viewer = "viewer"  # read-only signals + metrics
     trader = "trader"  # paper trading with own Alpaca keys
     admin = "admin"  # full ops access
 
 
-class UserTier(str, enum.Enum):
+class UserTier(enum.StrEnum):
     free = "free"
     pro = "pro"
     premium = "premium"  # live trading unlocked
@@ -276,7 +276,7 @@ class ModelRun(Base):
 # ================================================================
 # SIGNALS — hypertable on (date)
 # ================================================================
-class SignalDirection(str, enum.Enum):
+class SignalDirection(enum.StrEnum):
     buy = "BUY"
     hold = "HOLD"
     sell = "SELL"
@@ -325,12 +325,12 @@ class Signal(Base):
 # ================================================================
 # PORTFOLIO
 # ================================================================
-class OrderSide(str, enum.Enum):
+class OrderSide(enum.StrEnum):
     buy = "BUY"
     sell = "SELL"
 
 
-class OrderStatus(str, enum.Enum):
+class OrderStatus(enum.StrEnum):
     pending = "PENDING"
     submitted = "SUBMITTED"
     partial = "PARTIAL"
