@@ -26,14 +26,13 @@ RUN pip install --no-cache-dir uv==0.5.11
 
 WORKDIR /app
 
-# ---- Dependency layer (cached on pyproject.toml changes) ----
+# ---- Source must be present before editable install resolves src/ ----
 COPY pyproject.toml ./
-RUN uv pip install --system --no-cache -e ".[dev]"
-
-# ---- Source ----
 COPY src ./src
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
+
+RUN uv pip install --system --no-cache -e ".[dev]"
 
 # Healthcheck target
 EXPOSE 8000
