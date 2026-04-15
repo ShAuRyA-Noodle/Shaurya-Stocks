@@ -203,4 +203,4 @@ class RiskManager:
         return (peak - current) / peak
 
 
-__all__ = ["OrderIntent", "RiskCheckResult", "RiskManager", "RiskViolation", "OrderSide"]
+__all__ = ["OrderIntent", "OrderSide", "RiskCheckResult", "RiskManager", "RiskViolation"]

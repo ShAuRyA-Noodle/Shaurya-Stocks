@@ -14,9 +14,9 @@ A filled BUY adds/extends; a filled SELL reduces/closes.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Mapping
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
