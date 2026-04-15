@@ -50,7 +50,7 @@ def triple_barrier_labels(df: pl.DataFrame, cfg: TripleBarrierConfig | None = No
         (pl.col("adj_close") / pl.col("adj_close").shift(1).over("symbol")).log().alias("_lret"),
     ).with_columns(
         pl.col("_lret")
-        .rolling_std(window_size=cfg.vol_window, min_periods=cfg.vol_window)
+        .rolling_std(window_size=cfg.vol_window, min_samples=cfg.vol_window)
         .over("symbol")
         .alias("_sigma"),
     )

@@ -39,7 +39,7 @@ ANNUALIZATION = 252**0.5
 # ----------------------------------------------------------------
 def _rolling_by_symbol(expr: pl.Expr, *, window: int, min_periods: int | None = None) -> pl.Expr:
     """Rolling window within each symbol group, using the `over` partition."""
-    return expr.rolling_mean(window_size=window, min_periods=min_periods or window).over("symbol")
+    return expr.rolling_mean(window_size=window, min_samples=min_periods or window).over("symbol")
 
 
 def _wilder_rma(col: str, window: int) -> pl.Expr:
@@ -72,14 +72,14 @@ def add_technical_features(df: pl.DataFrame) -> pl.DataFrame:
 
     # --- realized vol (annualized) ---
     df = df.with_columns(
-        (pl.col("log_ret_1d").rolling_std(window_size=5, min_periods=5).over("symbol") * ANNUALIZATION).alias(
+        (pl.col("log_ret_1d").rolling_std(window_size=5, min_samples=5).over("symbol") * ANNUALIZATION).alias(
             "vol_5d"
         ),
         (
-            pl.col("log_ret_1d").rolling_std(window_size=21, min_periods=21).over("symbol") * ANNUALIZATION
+            pl.col("log_ret_1d").rolling_std(window_size=21, min_samples=21).over("symbol") * ANNUALIZATION
         ).alias("vol_21d"),
         (
-            pl.col("log_ret_1d").rolling_std(window_size=63, min_periods=63).over("symbol") * ANNUALIZATION
+            pl.col("log_ret_1d").rolling_std(window_size=63, min_samples=63).over("symbol") * ANNUALIZATION
         ).alias("vol_63d"),
     )
 
@@ -130,8 +130,8 @@ def add_technical_features(df: pl.DataFrame) -> pl.DataFrame:
     # --- Bollinger bands (20, 2σ) ---
     df = (
         df.with_columns(
-            pl.col("adj_close").rolling_mean(window_size=20, min_periods=20).over("symbol").alias("_bb_mid"),
-            pl.col("adj_close").rolling_std(window_size=20, min_periods=20).over("symbol").alias("_bb_std"),
+            pl.col("adj_close").rolling_mean(window_size=20, min_samples=20).over("symbol").alias("_bb_mid"),
+            pl.col("adj_close").rolling_std(window_size=20, min_samples=20).over("symbol").alias("_bb_std"),
         )
         .with_columns(
             (pl.col("_bb_mid") + 2 * pl.col("_bb_std")).alias("bb_upper"),
@@ -158,8 +158,8 @@ def add_technical_features(df: pl.DataFrame) -> pl.DataFrame:
     # --- volume features ---
     df = df.with_columns(
         (
-            (pl.col("volume") - pl.col("volume").rolling_mean(window_size=21, min_periods=21).over("symbol"))
-            / pl.col("volume").rolling_std(window_size=21, min_periods=21).over("symbol")
+            (pl.col("volume") - pl.col("volume").rolling_mean(window_size=21, min_samples=21).over("symbol"))
+            / pl.col("volume").rolling_std(window_size=21, min_samples=21).over("symbol")
         ).alias("volume_z_21"),
     )
 
@@ -178,8 +178,8 @@ def add_technical_features(df: pl.DataFrame) -> pl.DataFrame:
             pl.col("_obv_delta").cum_sum().over("symbol").alias("_obv_raw"),
         )
         .with_columns(
-            pl.col("_obv_raw").rolling_mean(window_size=63, min_periods=63).over("symbol").alias("_obv_mean"),
-            pl.col("_obv_raw").rolling_std(window_size=63, min_periods=63).over("symbol").alias("_obv_std"),
+            pl.col("_obv_raw").rolling_mean(window_size=63, min_samples=63).over("symbol").alias("_obv_mean"),
+            pl.col("_obv_raw").rolling_std(window_size=63, min_samples=63).over("symbol").alias("_obv_std"),
         )
         .with_columns(
             ((pl.col("_obv_raw") - pl.col("_obv_mean")) / pl.col("_obv_std")).alias("obv"),
@@ -190,8 +190,8 @@ def add_technical_features(df: pl.DataFrame) -> pl.DataFrame:
     df = df.with_columns(
         (
             (
-                pl.col("high").rolling_max(window_size=21, min_periods=21).over("symbol")
-                - pl.col("low").rolling_min(window_size=21, min_periods=21).over("symbol")
+                pl.col("high").rolling_max(window_size=21, min_samples=21).over("symbol")
+                - pl.col("low").rolling_min(window_size=21, min_samples=21).over("symbol")
             )
             / pl.col("close")
         ).alias("high_low_range_21"),
