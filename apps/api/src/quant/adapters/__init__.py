@@ -1,7 +1,7 @@
 """Provider adapters — one class per upstream, uniform async HTTP surface."""
 
-from quant.adapters.alphavantage import AlphaVantageAdapter
 from quant.adapters.alpaca import AlpacaBrokerAdapter, AlpacaDataAdapter
+from quant.adapters.alphavantage import AlphaVantageAdapter
 from quant.adapters.base import HttpAdapter, TokenBucket
 from quant.adapters.exceptions import (
     AdapterError,
@@ -22,25 +22,25 @@ from quant.adapters.polygon import PolygonAdapter
 from quant.adapters.tiingo import TiingoAdapter
 
 __all__ = [
-    "HttpAdapter",
-    "TokenBucket",
+    "MACRO_SERIES",
     "AdapterError",
-    "AuthenticationError",
-    "DataQualityError",
-    "ProviderError",
-    "RateLimitError",
-    "TransientError",
-    "PolygonAdapter",
     "AlpacaBrokerAdapter",
     "AlpacaDataAdapter",
-    "FredAdapter",
-    "MACRO_SERIES",
-    "TiingoAdapter",
-    "FinnhubAdapter",
-    "MarketauxAdapter",
-    "NewsApiAdapter",
-    "FmpAdapter",
-    "NasdaqDataLinkAdapter",
     "AlphaVantageAdapter",
+    "AuthenticationError",
+    "DataQualityError",
+    "FinnhubAdapter",
+    "FmpAdapter",
+    "FredAdapter",
     "GroqAdapter",
+    "HttpAdapter",
+    "MarketauxAdapter",
+    "NasdaqDataLinkAdapter",
+    "NewsApiAdapter",
+    "PolygonAdapter",
+    "ProviderError",
+    "RateLimitError",
+    "TiingoAdapter",
+    "TokenBucket",
+    "TransientError",
 ]

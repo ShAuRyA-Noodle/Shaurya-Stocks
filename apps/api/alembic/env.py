@@ -8,9 +8,8 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from quant.config import settings
-
-from quant.db.base import Base
 from quant.db import models  # noqa: F401 — register all models on Base.metadata
+from quant.db.base import Base
 
 target_metadata = Base.metadata
 

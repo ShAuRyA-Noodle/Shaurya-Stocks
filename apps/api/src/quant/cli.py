@@ -15,8 +15,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Coroutine
 from datetime import date, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -39,7 +40,7 @@ def _setup_logging() -> None:
     )
 
 
-def _run(coro):  # type: ignore[no-untyped-def]
+def _run(coro: Coroutine[Any, Any, Any]) -> Any:
     _setup_logging()
     return asyncio.run(coro)
 

@@ -46,7 +46,7 @@ class LoginIn(BaseModel):
 
 class TokenOut(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # noqa: S105  OAuth2 scheme label, not a credential
     expires_in: int
 
 
@@ -99,13 +99,15 @@ async def _issue_tokens(
     request: Request,
 ) -> TokenOut:
     raw, token_hash, expires_at = generate_refresh_token()
-    db.add(RefreshToken(
-        user_id=user.id,
-        token_hash=token_hash,
-        expires_at=expires_at,
-        user_agent=(request.headers.get("user-agent") or "")[:500] or None,
-        ip_address=(request.client.host if request.client else None),
-    ))
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            user_agent=(request.headers.get("user-agent") or "")[:500] or None,
+            ip_address=(request.client.host if request.client else None),
+        )
+    )
     await db.commit()
 
     access = create_access_token(user.id, role=user.role.value, tier=user.tier.value)
@@ -186,9 +188,9 @@ async def logout(
 ) -> Response:
     if refresh_cookie:
         token_hash = hash_refresh_token(refresh_cookie)
-        rt = (await db.execute(
-            select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-        )).scalar_one_or_none()
+        rt = (
+            await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+        ).scalar_one_or_none()
         if rt is not None and rt.revoked_at is None:
             rt.revoked_at = datetime.now(UTC)
             await db.commit()

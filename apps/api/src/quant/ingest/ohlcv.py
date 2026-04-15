@@ -173,7 +173,7 @@ async def backfill_ohlcv_daily(
                 if i % 10 == 0:
                     await db.commit()
                     log.info("ohlcv backfill: %d / %d  (last=%s, rows=%d)", i, len(symbols), sym, n)
-            except Exception as e:  # noqa: BLE001 — keep going per-symbol
+            except Exception as e:
                 log.exception("ohlcv backfill failed for %s: %s", sym, e)
                 result[sym] = 0
         await db.commit()

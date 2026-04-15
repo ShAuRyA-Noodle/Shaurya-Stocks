@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
@@ -29,7 +29,6 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
-    Enum as SAEnum,
     ForeignKey,
     Index,
     Integer,
@@ -38,6 +37,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+)
+from sqlalchemy import (
+    Enum as SAEnum,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -49,9 +51,9 @@ from quant.db.base import Base
 # AUTH
 # ================================================================
 class UserRole(str, enum.Enum):
-    viewer = "viewer"    # read-only signals + metrics
-    trader = "trader"    # paper trading with own Alpaca keys
-    admin = "admin"      # full ops access
+    viewer = "viewer"  # read-only signals + metrics
+    trader = "trader"  # paper trading with own Alpaca keys
+    admin = "admin"  # full ops access
 
 
 class UserTier(str, enum.Enum):
@@ -83,7 +85,7 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -105,7 +107,7 @@ class RefreshToken(Base):
     ip_address: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="refresh_tokens")
+    user: Mapped[User] = relationship(back_populates="refresh_tokens")
 
 
 # ================================================================
@@ -147,9 +149,7 @@ class UniverseMembership(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     universe: Mapped[str] = mapped_column(String(32), nullable=False)  # SP500, NDX100, R1000
-    symbol: Mapped[str] = mapped_column(
-        String(16), ForeignKey("market.tickers.symbol"), nullable=False
-    )
+    symbol: Mapped[str] = mapped_column(String(16), ForeignKey("market.tickers.symbol"), nullable=False)
     effective_from: Mapped[date] = mapped_column(Date, nullable=False)
     effective_to: Mapped[date | None] = mapped_column(Date)  # null = currently a member
 
@@ -170,7 +170,7 @@ class CorporateAction(Base):
     ex_date: Mapped[date] = mapped_column(Date, nullable=False)
     record_date: Mapped[date | None] = mapped_column(Date)
     pay_date: Mapped[date | None] = mapped_column(Date)
-    ratio: Mapped[Decimal | None] = mapped_column(Numeric(20, 10))       # for splits
+    ratio: Mapped[Decimal | None] = mapped_column(Numeric(20, 10))  # for splits
     cash_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 10))  # for dividends
     currency: Mapped[str] = mapped_column(String(8), default="USD")
 
@@ -194,9 +194,7 @@ class OHLCVDaily(Base):
     vwap: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     trade_count: Mapped[int | None] = mapped_column(BigInteger)
     source: Mapped[str] = mapped_column(String(32), default="polygon", nullable=False)
-    ingested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         CheckConstraint("high >= low", name="high_gte_low"),
@@ -247,9 +245,7 @@ class Feature(Base):
     # e.g. {"ret_1d": 0.012, "rsi_14": 58.2, "sentiment_news_1d": 0.34, ...}
 
     point_in_time_safe: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    computed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 # ================================================================
@@ -263,14 +259,14 @@ class ModelRun(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     mlflow_run_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
-    name: Mapped[str] = mapped_column(String(128), nullable=False)           # e.g. "ts_xgb_AAPL"
-    family: Mapped[str] = mapped_column(String(32), nullable=False)          # ts | cs | regime | meta
+    name: Mapped[str] = mapped_column(String(128), nullable=False)  # e.g. "ts_xgb_AAPL"
+    family: Mapped[str] = mapped_column(String(32), nullable=False)  # ts | cs | regime | meta
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     feature_set_version: Mapped[str] = mapped_column(String(32), nullable=False)
-    symbols: Mapped[list] = mapped_column(JSONB, default=list)               # which symbols trained
+    symbols: Mapped[list] = mapped_column(JSONB, default=list)  # which symbols trained
     train_start: Mapped[date] = mapped_column(Date, nullable=False)
     train_end: Mapped[date] = mapped_column(Date, nullable=False)
-    cv_scheme: Mapped[str] = mapped_column(String(64), nullable=False)       # purged_kfold, walk_forward
+    cv_scheme: Mapped[str] = mapped_column(String(64), nullable=False)  # purged_kfold, walk_forward
     metrics: Mapped[dict] = mapped_column(JSONB, default=dict)
     hyperparams: Mapped[dict] = mapped_column(JSONB, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -309,7 +305,7 @@ class Signal(Base):
         SAEnum(SignalDirection, name="signal_direction"), nullable=False
     )
     confidence: Mapped[Decimal] = mapped_column(Numeric(6, 5), nullable=False)  # 0..1
-    score: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)       # raw ensemble score
+    score: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)  # raw ensemble score
     rank_in_universe: Mapped[int | None] = mapped_column(Integer)
 
     entry_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
@@ -317,9 +313,9 @@ class Signal(Base):
     stop_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     horizon_days: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
 
-    shap_values: Mapped[dict | None] = mapped_column(JSONB)   # {"rsi_14": -0.12, ...}
+    shap_values: Mapped[dict | None] = mapped_column(JSONB)  # {"rsi_14": -0.12, ...}
     risk_level: Mapped[str | None] = mapped_column(String(16))  # LOW / MEDIUM / HIGH
-    explanation: Mapped[str | None] = mapped_column(Text)      # Groq-generated plain-english
+    explanation: Mapped[str | None] = mapped_column(Text)  # Groq-generated plain-english
 
     computed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -450,7 +446,7 @@ class NewsArticle(Base):
     __tablename__ = "articles"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    source: Mapped[str] = mapped_column(String(64), nullable=False)   # polygon, marketaux, newsapi, finnhub
+    source: Mapped[str] = mapped_column(String(64), nullable=False)  # polygon, marketaux, newsapi, finnhub
     provider_id: Mapped[str] = mapped_column(String(255), nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -459,13 +455,11 @@ class NewsArticle(Base):
     symbols: Mapped[list] = mapped_column(JSONB, default=list)
 
     sentiment_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # -1..1
-    sentiment_label: Mapped[str | None] = mapped_column(String(16))          # bearish/neutral/bullish
+    sentiment_label: Mapped[str | None] = mapped_column(String(16))  # bearish/neutral/bullish
     sentiment_model: Mapped[str | None] = mapped_column(String(64))
     sentiment_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    ingested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         UniqueConstraint("source", "provider_id", name="uq_news_source_providerid"),
@@ -484,7 +478,7 @@ class MacroSeries(Base):
     __tablename__ = "series"
     __table_args__ = {"schema": "macro"}
 
-    series_id: Mapped[str] = mapped_column(String(32), primary_key=True)   # VIXCLS, DGS10, ...
+    series_id: Mapped[str] = mapped_column(String(32), primary_key=True)  # VIXCLS, DGS10, ...
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     units: Mapped[str | None] = mapped_column(String(64))
     frequency: Mapped[str | None] = mapped_column(String(16))
@@ -506,22 +500,32 @@ class MacroObservation(Base):
         String(32), ForeignKey("macro.series.series_id"), primary_key=True, nullable=False
     )
     value: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
-    ingested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 # ================================================================
 # Exports
 # ================================================================
 __all__ = [
-    "User", "RefreshToken", "UserRole", "UserTier",
-    "Ticker", "UniverseMembership", "CorporateAction",
-    "OHLCVDaily", "OHLCV1Min",
+    "CorporateAction",
     "Feature",
+    "MacroObservation",
+    "MacroSeries",
     "ModelRun",
-    "Signal", "SignalDirection",
-    "Position", "Trade", "Snapshot", "OrderSide", "OrderStatus",
     "NewsArticle",
-    "MacroSeries", "MacroObservation",
+    "OHLCV1Min",
+    "OHLCVDaily",
+    "OrderSide",
+    "OrderStatus",
+    "Position",
+    "RefreshToken",
+    "Signal",
+    "SignalDirection",
+    "Snapshot",
+    "Ticker",
+    "Trade",
+    "UniverseMembership",
+    "User",
+    "UserRole",
+    "UserTier",
 ]

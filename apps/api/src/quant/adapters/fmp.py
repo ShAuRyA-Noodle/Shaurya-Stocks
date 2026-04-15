@@ -29,9 +29,7 @@ class FmpAdapter(HttpAdapter):
         return merged
 
     async def price_target_consensus(self, symbol: str) -> list[dict[str, Any]]:
-        data = await self.get_json(
-            "/api/v4/price-target-consensus", params={"symbol": symbol}
-        )
+        data = await self.get_json("/api/v4/price-target-consensus", params={"symbol": symbol})
         return data if isinstance(data, list) else []
 
     async def analyst_estimates(self, symbol: str) -> list[dict[str, Any]]:
@@ -43,7 +41,5 @@ class FmpAdapter(HttpAdapter):
         return data if isinstance(data, list) else []
 
     async def key_metrics(self, symbol: str, *, period: str = "annual") -> list[dict[str, Any]]:
-        data = await self.get_json(
-            f"/api/v3/key-metrics/{symbol}", params={"period": period, "limit": 40}
-        )
+        data = await self.get_json(f"/api/v3/key-metrics/{symbol}", params={"period": period, "limit": 40})
         return data if isinstance(data, list) else []

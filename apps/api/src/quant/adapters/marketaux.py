@@ -32,7 +32,7 @@ class MarketauxAdapter(HttpAdapter):
         symbols: list[str] | None = None,
         countries: str = "us",
         language: str = "en",
-        limit: int = 3,   # free tier caps articles per call
+        limit: int = 3,  # free tier caps articles per call
         published_after: str | None = None,
         filter_entities: bool = True,
     ) -> list[dict[str, Any]]:

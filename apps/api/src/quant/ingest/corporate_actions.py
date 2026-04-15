@@ -62,7 +62,7 @@ async def ingest_corporate_actions(
                 try:
                     splits = await poly.splits(sym)
                     divs = await poly.dividends(sym)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     log.warning("corp actions fetch failed for %s: %s", sym, e)
                     counts[sym] = 0
                     continue
@@ -73,8 +73,10 @@ async def ingest_corporate_actions(
                     counts[sym] = 0
                     continue
 
-                stmt = pg_insert(CorporateAction).values(rows).on_conflict_do_nothing(
-                    constraint="uq_corp_action"
+                stmt = (
+                    pg_insert(CorporateAction)
+                    .values(rows)
+                    .on_conflict_do_nothing(constraint="uq_corp_action")
                 )
                 await db.execute(stmt)
                 counts[sym] = len(rows)

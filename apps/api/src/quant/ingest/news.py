@@ -162,7 +162,7 @@ async def ingest_news(
             for sym in symbols:
                 try:
                     arts = await poly.news(ticker=sym, published_gte=since_iso, limit=50)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     log.warning("polygon news failed for %s: %s", sym, e)
                     continue
                 for a in arts:
@@ -177,7 +177,7 @@ async def ingest_news(
                 arts = await t.news(tickers=symbols, limit=500)
             rows = [r for a in arts if (r := _tiingo_row(a))]
             counts["tiingo"] = await _upsert(db, rows)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.warning("tiingo news failed: %s", e)
             counts["tiingo"] = 0
 
@@ -187,7 +187,7 @@ async def ingest_news(
                 arts = await m.news(symbols=symbols[:25], published_after=since_iso, limit=3)
             rows = [r for a in arts if (r := _marketaux_row(a))]
             counts["marketaux"] = await _upsert(db, rows)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.warning("marketaux news failed: %s", e)
             counts["marketaux"] = 0
 
@@ -198,14 +198,15 @@ async def ingest_news(
                 for sym in symbols:
                     try:
                         arts = await f.company_news(sym, start=yday, end=today)
-                    except Exception:  # noqa: BLE001
+                    except Exception as e:
+                        log.warning("finnhub company_news failed for %s: %s", sym, e)
                         continue
                     for a in arts:
                         row = _finnhub_row(a, sym)
                         if row:
                             rows.append(row)
                 counts["finnhub"] = await _upsert(db, rows)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.warning("finnhub news failed: %s", e)
             counts["finnhub"] = 0
 
@@ -215,7 +216,7 @@ async def ingest_news(
                 arts = await n.top_headlines(category="business", country="us", page_size=50)
             rows = [r for a in arts if (r := _newsapi_row(a))]
             counts["newsapi"] = await _upsert(db, rows)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.info("newsapi skipped: %s", e)
             counts["newsapi"] = 0
 

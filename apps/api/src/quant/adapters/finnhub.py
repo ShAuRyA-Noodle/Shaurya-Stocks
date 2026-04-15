@@ -50,9 +50,7 @@ class FinnhubAdapter(HttpAdapter):
         data = await self.get_json("/stock/recommendation", params={"symbol": symbol})
         return data if isinstance(data, list) else []
 
-    async def company_news(
-        self, symbol: str, *, start: date, end: date
-    ) -> list[dict[str, Any]]:
+    async def company_news(self, symbol: str, *, start: date, end: date) -> list[dict[str, Any]]:
         data = await self.get_json(
             "/company-news",
             params={"symbol": symbol, "from": start.isoformat(), "to": end.isoformat()},

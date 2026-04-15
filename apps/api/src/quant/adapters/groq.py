@@ -140,10 +140,12 @@ class GroqAdapter(HttpAdapter):
                 else ""
             )
         )
-        return (await self._chat(
-            model=settings.groq_model_smart,
-            system=EXPLANATION_SYSTEM,
-            user=user,
-            temperature=0.3,
-            max_tokens=350,
-        )).strip()
+        return (
+            await self._chat(
+                model=settings.groq_model_smart,
+                system=EXPLANATION_SYSTEM,
+                user=user,
+                temperature=0.3,
+                max_tokens=350,
+            )
+        ).strip()

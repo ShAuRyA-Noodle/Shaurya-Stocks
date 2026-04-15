@@ -14,6 +14,7 @@ Subclasses set `name`, `base_url`, `default_headers()`, and `calls_per_minute`.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from abc import ABC, abstractmethod
@@ -158,10 +159,8 @@ class HttpAdapter(ABC):
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     if retry_after:
-                        try:
+                        with contextlib.suppress(ValueError):
                             await asyncio.sleep(min(float(retry_after), 60))
-                        except ValueError:
-                            pass
                     raise RateLimitError(self.name, resp.status_code, body)
                 if 500 <= resp.status_code < 600:
                     raise TransientError(f"[{self.name}] HTTP {resp.status_code}: {body[:200]}")

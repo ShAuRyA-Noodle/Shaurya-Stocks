@@ -9,7 +9,7 @@ from quant.universe.loader import bootstrap_universe
 
 __all__ = [
     "DEV_UNIVERSE",
-    "fetch_sp500",
-    "fetch_ndx100",
     "bootstrap_universe",
+    "fetch_ndx100",
+    "fetch_sp500",
 ]

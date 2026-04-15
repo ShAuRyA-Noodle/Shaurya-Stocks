@@ -56,8 +56,8 @@ class AlpacaBrokerAdapter(HttpAdapter):
         *,
         symbol: str,
         qty: float,
-        side: str,            # "buy" | "sell"
-        type: str = "market", # "market" | "limit"
+        side: str,  # "buy" | "sell"
+        type: str = "market",  # "market" | "limit"
         time_in_force: str = "day",
         limit_price: float | None = None,
         stop_price: float | None = None,

@@ -30,15 +30,21 @@ async def test_polygon_daily_bars_roundtrip() -> None:
             json={
                 "status": "OK",
                 "results": [
-                    {"t": 1714089600000, "o": 100.0, "h": 110.0, "l": 95.0,
-                     "c": 108.0, "v": 1_000_000, "vw": 104.5, "n": 12345},
+                    {
+                        "t": 1714089600000,
+                        "o": 100.0,
+                        "h": 110.0,
+                        "l": 95.0,
+                        "c": 108.0,
+                        "v": 1_000_000,
+                        "vw": 104.5,
+                        "n": 12345,
+                    },
                 ],
             },
         )
 
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(handler), base_url="https://api.polygon.io"
-    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://api.polygon.io")
     p = PolygonAdapter(client=client)
     bars = await p.daily_bars("AAPL", date(2024, 1, 1), date(2024, 1, 31))
     await p.aclose()
@@ -80,24 +86,29 @@ async def test_alpaca_data_bars_pagination() -> None:
             return httpx.Response(
                 200,
                 json={
-                    "bars": {"AAPL": [{"t": "2024-01-02T14:30:00Z", "o": 1, "h": 2, "l": 0.5,
-                                       "c": 1.5, "v": 100}]},
+                    "bars": {
+                        "AAPL": [{"t": "2024-01-02T14:30:00Z", "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100}]
+                    },
                     "next_page_token": "abc",
                 },
             )
         return httpx.Response(
             200,
-            json={"bars": {"AAPL": [{"t": "2024-01-03T14:30:00Z", "o": 1.5, "h": 2, "l": 1,
-                                     "c": 1.9, "v": 200}]}, "next_page_token": None},
+            json={
+                "bars": {
+                    "AAPL": [{"t": "2024-01-03T14:30:00Z", "o": 1.5, "h": 2, "l": 1, "c": 1.9, "v": 200}]
+                },
+                "next_page_token": None,
+            },
         )
 
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(handler), base_url="https://data.alpaca.markets"
-    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://data.alpaca.markets")
     a = AlpacaDataAdapter(client=client)
     bars = await a.bars(
-        ["AAPL"], timeframe="1Day",
-        start=datetime(2024, 1, 2), end=datetime(2024, 1, 3),
+        ["AAPL"],
+        timeframe="1Day",
+        start=datetime(2024, 1, 2),
+        end=datetime(2024, 1, 3),
     )
     await a.aclose()
 
@@ -114,9 +125,7 @@ async def test_fred_observations_filetype_injected() -> None:
         seen.update(dict(request.url.params))
         return httpx.Response(200, json={"observations": [{"date": "2024-01-01", "value": "20.5"}]})
 
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(handler), base_url="https://api.stlouisfed.org"
-    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://api.stlouisfed.org")
     f = FredAdapter(client=client)
     obs = await f.observations("VIXCLS")
     await f.aclose()
@@ -134,12 +143,22 @@ async def test_tiingo_sends_token_header() -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         captured.update({k.lower(): v for k, v in request.headers.items()})
-        return httpx.Response(200, json=[{"date": "2024-01-02", "open": 1, "high": 2, "low": 1,
-                                          "close": 1.5, "adjClose": 1.5, "volume": 100}])
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "date": "2024-01-02",
+                    "open": 1,
+                    "high": 2,
+                    "low": 1,
+                    "close": 1.5,
+                    "adjClose": 1.5,
+                    "volume": 100,
+                }
+            ],
+        )
 
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(handler), base_url="https://api.tiingo.com"
-    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://api.tiingo.com")
     t = TiingoAdapter(client=client)
     rows = await t.daily_prices("AAPL", start=date(2024, 1, 1), end=date(2024, 1, 5))
     await t.aclose()
@@ -158,9 +177,7 @@ async def test_finnhub_token_in_query() -> None:
         seen.update(dict(request.url.params))
         return httpx.Response(200, json={"earningsCalendar": [{"symbol": "AAPL"}]})
 
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(handler), base_url="https://finnhub.io/api/v1"
-    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://finnhub.io/api/v1")
     f = FinnhubAdapter(client=client)
     await f.earnings_calendar(start=date(2024, 1, 1), end=date(2024, 1, 31))
     await f.aclose()
@@ -177,15 +194,18 @@ async def test_marketaux_news_shape() -> None:
             200,
             json={
                 "data": [
-                    {"uuid": "a", "url": "https://x", "title": "t", "published_at": "2024-01-02T12:00:00Z",
-                     "entities": [{"symbol": "AAPL"}]}
+                    {
+                        "uuid": "a",
+                        "url": "https://x",
+                        "title": "t",
+                        "published_at": "2024-01-02T12:00:00Z",
+                        "entities": [{"symbol": "AAPL"}],
+                    }
                 ]
             },
         )
 
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(handler), base_url="https://api.marketaux.com"
-    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://api.marketaux.com")
     m = MarketauxAdapter(client=client)
     data = await m.news(symbols=["AAPL"])
     await m.aclose()
@@ -201,11 +221,9 @@ async def test_groq_sentiment_parses_json() -> None:
         return httpx.Response(
             200,
             json={
-                "choices": [{
-                    "message": {
-                        "content": '{"score": 0.7, "label": "bullish", "rationale": "strong beat"}'
-                    }
-                }]
+                "choices": [
+                    {"message": {"content": '{"score": 0.7, "label": "bullish", "rationale": "strong beat"}'}}
+                ]
             },
         )
 
@@ -213,9 +231,7 @@ async def test_groq_sentiment_parses_json() -> None:
         transport=httpx.MockTransport(handler), base_url="https://api.groq.com/openai/v1"
     )
     g = GroqAdapter(client=client)
-    out = await g.score_sentiment(
-        headline="Apple beats earnings", summary=None, tickers=["AAPL"]
-    )
+    out = await g.score_sentiment(headline="Apple beats earnings", summary=None, tickers=["AAPL"])
     await g.aclose()
 
     assert out["score"] == pytest.approx(0.7)

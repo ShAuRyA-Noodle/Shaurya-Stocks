@@ -16,6 +16,7 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from datetime import UTC, date, datetime
 
@@ -34,17 +35,19 @@ log = logging.getLogger("quant.universe")
 async def _upsert_tickers(db: AsyncSession, rows: list[dict[str, str]]) -> None:
     if not rows:
         return
-    stmt = pg_insert(Ticker).values([
-        {
-            "symbol": r["symbol"],
-            "name": r.get("name") or None,
-            "sector": r.get("sector") or None,
-            "industry": r.get("industry") or None,
-            "asset_class": "equity",
-            "currency": "USD",
-        }
-        for r in rows
-    ])
+    stmt = pg_insert(Ticker).values(
+        [
+            {
+                "symbol": r["symbol"],
+                "name": r.get("name") or None,
+                "sector": r.get("sector") or None,
+                "industry": r.get("industry") or None,
+                "asset_class": "equity",
+                "currency": "USD",
+            }
+            for r in rows
+        ]
+    )
     stmt = stmt.on_conflict_do_update(
         index_elements=[Ticker.symbol],
         set_={
@@ -64,10 +67,11 @@ async def _record_membership(
         return
     # Insert-if-absent: the (universe, symbol, effective_from) unique constraint
     # makes this idempotent.
-    stmt = pg_insert(UniverseMembership).values([
-        {"universe": universe, "symbol": s, "effective_from": effective_from}
-        for s in symbols
-    ]).on_conflict_do_nothing(constraint="uq_universe_member")
+    stmt = (
+        pg_insert(UniverseMembership)
+        .values([{"universe": universe, "symbol": s, "effective_from": effective_from} for s in symbols])
+        .on_conflict_do_nothing(constraint="uq_universe_member")
+    )
     await db.execute(stmt)
 
 
@@ -77,7 +81,7 @@ async def _enrich_with_polygon(db: AsyncSession, symbols: list[str]) -> None:
         for sym in symbols:
             try:
                 info = await poly.ticker_details(sym)
-            except Exception as e:  # noqa: BLE001 — enrichment is best-effort
+            except Exception as e:
                 log.warning("polygon enrichment failed for %s: %s", sym, e)
                 continue
             if not info:
@@ -89,10 +93,8 @@ async def _enrich_with_polygon(db: AsyncSession, symbols: list[str]) -> None:
             t.country = (info.get("locale") or "us")[:8]
             listed = info.get("list_date")
             if listed:
-                try:
+                with contextlib.suppress(ValueError):
                     t.listed_at = date.fromisoformat(listed)
-                except ValueError:
-                    pass
 
 
 async def bootstrap_universe(
@@ -146,12 +148,15 @@ async def active_universe_symbols(
     owns = session is None
     db = session or AsyncSessionLocal()
     try:
-        stmt = select(UniverseMembership.symbol).where(
-            UniverseMembership.universe == universe,
-            UniverseMembership.effective_from <= as_of,
-            (UniverseMembership.effective_to.is_(None))
-            | (UniverseMembership.effective_to > as_of),
-        ).distinct()
+        stmt = (
+            select(UniverseMembership.symbol)
+            .where(
+                UniverseMembership.universe == universe,
+                UniverseMembership.effective_from <= as_of,
+                (UniverseMembership.effective_to.is_(None)) | (UniverseMembership.effective_to > as_of),
+            )
+            .distinct()
+        )
         rows = (await db.execute(stmt)).scalars().all()
         return sorted(set(rows))
     finally:

@@ -30,9 +30,7 @@ async def _bootstrap_universe_task(enrich: bool) -> dict[str, int]:
 
 
 @task(retries=3, retry_delay_seconds=60, tags=["ingest", "ohlcv"])
-async def _backfill_ohlcv_task(
-    symbols: list[str], start: date, end: date
-) -> dict[str, int]:
+async def _backfill_ohlcv_task(symbols: list[str], start: date, end: date) -> dict[str, int]:
     return await backfill_ohlcv_daily(symbols, start=start, end=end)
 
 
@@ -87,10 +85,7 @@ async def bootstrap_flow(*, years: int = 10, enrich: bool = False) -> dict[str, 
 async def daily_close_flow() -> dict[str, int]:
     """Run after US close: yesterday's bars + corp actions + macro refresh."""
     log = get_run_logger()
-    symbols = sorted(set(
-        await active_universe_symbols("SP500")
-        + await active_universe_symbols("NDX100")
-    ))
+    symbols = sorted(set(await active_universe_symbols("SP500") + await active_universe_symbols("NDX100")))
     yday = date.today() - timedelta(days=1)
     ohlcv = await _backfill_ohlcv_task(symbols, yday, yday)
     corp = await _ingest_corp_actions_task(symbols)
@@ -106,10 +101,7 @@ async def daily_close_flow() -> dict[str, int]:
 
 @flow(name="hourly_news", log_prints=True)
 async def hourly_news_flow() -> dict[str, int]:
-    symbols = sorted(set(
-        await active_universe_symbols("SP500")
-        + await active_universe_symbols("NDX100")
-    ))
+    symbols = sorted(set(await active_universe_symbols("SP500") + await active_universe_symbols("NDX100")))
     return await _ingest_news_task(symbols, 2)
 
 

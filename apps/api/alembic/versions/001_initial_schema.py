@@ -35,7 +35,13 @@ USER_TIER = sa.Enum("free", "pro", "premium", name="user_tier")
 SIGNAL_DIRECTION = sa.Enum("BUY", "HOLD", "SELL", name="signal_direction")
 ORDER_SIDE = sa.Enum("BUY", "SELL", name="order_side")
 ORDER_STATUS = sa.Enum(
-    "PENDING", "SUBMITTED", "PARTIAL", "FILLED", "CANCELLED", "REJECTED", "EXPIRED",
+    "PENDING",
+    "SUBMITTED",
+    "PARTIAL",
+    "FILLED",
+    "CANCELLED",
+    "REJECTED",
+    "EXPIRED",
     name="order_status",
 )
 
@@ -62,8 +68,12 @@ def upgrade() -> None:
     # =============================================================
     op.create_table(
         "users",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("email", sa.String(255), nullable=False, unique=True),
         sa.Column("hashed_password", sa.String(255), nullable=False),
         sa.Column("full_name", sa.String(255)),
@@ -82,10 +92,18 @@ def upgrade() -> None:
 
     op.create_table(
         "refresh_tokens",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("uuid_generate_v4()")),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("auth.users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("token_hash", sa.String(255), nullable=False, unique=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("revoked_at", sa.DateTime(timezone=True)),
@@ -95,8 +113,9 @@ def upgrade() -> None:
         schema="auth",
     )
     op.create_index("ix_auth_refresh_tokens_user_id", "refresh_tokens", ["user_id"], schema="auth")
-    op.create_index("ix_auth_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"],
-                    unique=True, schema="auth")
+    op.create_index(
+        "ix_auth_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"], unique=True, schema="auth"
+    )
 
     # =============================================================
     # MARKET
@@ -132,8 +151,12 @@ def upgrade() -> None:
         sa.UniqueConstraint("universe", "symbol", "effective_from", name="uq_universe_member"),
         schema="market",
     )
-    op.create_index("ix_universe_membership_lookup", "universe_membership",
-                    ["universe", "symbol", "effective_from"], schema="market")
+    op.create_index(
+        "ix_universe_membership_lookup",
+        "universe_membership",
+        ["universe", "symbol", "effective_from"],
+        schema="market",
+    )
 
     op.create_table(
         "corporate_actions",
@@ -149,8 +172,9 @@ def upgrade() -> None:
         sa.UniqueConstraint("symbol", "ex_date", "action_type", name="uq_corp_action"),
         schema="market",
     )
-    op.create_index("ix_corporate_actions_symbol_date", "corporate_actions",
-                    ["symbol", "ex_date"], schema="market")
+    op.create_index(
+        "ix_corporate_actions_symbol_date", "corporate_actions", ["symbol", "ex_date"], schema="market"
+    )
 
     # =============================================================
     # OHLCV (public schema — will become hypertables)
@@ -202,16 +226,19 @@ def upgrade() -> None:
         sa.Column("computed_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         schema="feature",
     )
-    op.create_index("ix_features_daily_symbol_date", "features_daily",
-                    ["symbol", "date"], schema="feature")
+    op.create_index("ix_features_daily_symbol_date", "features_daily", ["symbol", "date"], schema="feature")
 
     # =============================================================
     # MODEL REGISTRY
     # =============================================================
     op.create_table(
         "model_runs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("mlflow_run_id", sa.String(64), nullable=False, unique=True),
         sa.Column("name", sa.String(128), nullable=False),
         sa.Column("family", sa.String(32), nullable=False),
@@ -227,8 +254,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         schema="model",
     )
-    op.create_index("ix_model_model_runs_mlflow_run_id", "model_runs",
-                    ["mlflow_run_id"], unique=True, schema="model")
+    op.create_index(
+        "ix_model_model_runs_mlflow_run_id", "model_runs", ["mlflow_run_id"], unique=True, schema="model"
+    )
 
     # =============================================================
     # SIGNALS
@@ -237,8 +265,13 @@ def upgrade() -> None:
         "signals",
         sa.Column("date", sa.Date, primary_key=True, nullable=False),
         sa.Column("symbol", sa.String(16), primary_key=True, nullable=False),
-        sa.Column("model_run_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("model.model_runs.id"), primary_key=True, nullable=False),
+        sa.Column(
+            "model_run_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("model.model_runs.id"),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("direction", SIGNAL_DIRECTION, nullable=False),
         sa.Column("confidence", sa.Numeric(6, 5), nullable=False),
         sa.Column("score", sa.Numeric(10, 6), nullable=False),
@@ -250,8 +283,7 @@ def upgrade() -> None:
         sa.Column("shap_values", postgresql.JSONB),
         sa.Column("risk_level", sa.String(16)),
         sa.Column("explanation", sa.Text),
-        sa.Column("computed_at", sa.DateTime(timezone=True),
-                  server_default=sa.func.now(), nullable=False),
+        sa.Column("computed_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         schema="signal",
     )
     op.create_index("ix_signals_symbol_date", "signals", ["symbol", "date"], schema="signal")
@@ -262,10 +294,18 @@ def upgrade() -> None:
     # =============================================================
     op.create_table(
         "positions",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("uuid_generate_v4()")),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("auth.users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("symbol", sa.String(16), sa.ForeignKey("market.tickers.symbol")),
         sa.Column("side", ORDER_SIDE, nullable=False),
         sa.Column("quantity", sa.Numeric(20, 6), nullable=False),
@@ -285,10 +325,18 @@ def upgrade() -> None:
 
     op.create_table(
         "trades",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("uuid_generate_v4()")),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("auth.users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("symbol", sa.String(16), sa.ForeignKey("market.tickers.symbol")),
         sa.Column("side", ORDER_SIDE, nullable=False),
         sa.Column("status", ORDER_STATUS, nullable=False, server_default="PENDING"),
@@ -314,9 +362,13 @@ def upgrade() -> None:
     op.create_table(
         "snapshots",
         sa.Column("date", sa.Date, primary_key=True, nullable=False),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("auth.users.id", ondelete="CASCADE"),
-                  primary_key=True, nullable=False),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("auth.users.id", ondelete="CASCADE"),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("cash", sa.Numeric(20, 4), nullable=False),
         sa.Column("positions_value", sa.Numeric(20, 4), nullable=False),
         sa.Column("total_equity", sa.Numeric(20, 4), nullable=False),
@@ -335,8 +387,12 @@ def upgrade() -> None:
     # =============================================================
     op.create_table(
         "articles",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("source", sa.String(64), nullable=False),
         sa.Column("provider_id", sa.String(255), nullable=False),
         sa.Column("url", sa.Text, nullable=False),
@@ -353,8 +409,7 @@ def upgrade() -> None:
         schema="news",
     )
     op.create_index("ix_articles_published", "articles", ["published_at"], schema="news")
-    op.create_index("ix_articles_symbols", "articles", ["symbols"],
-                    postgresql_using="gin", schema="news")
+    op.create_index("ix_articles_symbols", "articles", ["symbols"], postgresql_using="gin", schema="news")
 
     # =============================================================
     # MACRO
@@ -373,14 +428,18 @@ def upgrade() -> None:
     op.create_table(
         "observations",
         sa.Column("date", sa.Date, primary_key=True, nullable=False),
-        sa.Column("series_id", sa.String(32),
-                  sa.ForeignKey("macro.series.series_id"), primary_key=True, nullable=False),
+        sa.Column(
+            "series_id",
+            sa.String(32),
+            sa.ForeignKey("macro.series.series_id"),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("value", sa.Numeric(20, 6)),
         sa.Column("ingested_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         schema="macro",
     )
-    op.create_index("ix_macro_obs_series_date", "observations",
-                    ["series_id", "date"], schema="macro")
+    op.create_index("ix_macro_obs_series_date", "observations", ["series_id", "date"], schema="macro")
 
     # =============================================================
     # TIMESCALE HYPERTABLES (raw SQL — Alembic doesn't know about them)
@@ -395,11 +454,13 @@ def upgrade() -> None:
         ("macro.observations", "date", "365 days"),
     ]
     for table, time_col, chunk in hypertables:
-        conn.execute(sa.text(
-            f"SELECT create_hypertable('{table}', '{time_col}', "
-            f"chunk_time_interval => INTERVAL '{chunk}', "
-            f"if_not_exists => TRUE, migrate_data => TRUE)"
-        ))
+        conn.execute(
+            sa.text(
+                f"SELECT create_hypertable('{table}', '{time_col}', "
+                f"chunk_time_interval => INTERVAL '{chunk}', "
+                f"if_not_exists => TRUE, migrate_data => TRUE)"
+            )
+        )
 
 
 def downgrade() -> None:

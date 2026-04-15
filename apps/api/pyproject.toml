@@ -106,7 +106,7 @@ where = ["src"]
 include = ["quant*"]
 
 [tool.ruff]
-line-length = 100
+line-length = 110
 target-version = "py312"
 src = ["src", "tests"]
 
@@ -126,15 +126,18 @@ select = [
     "ANN",        # require type annotations
 ]
 ignore = [
-    "ANN101", "ANN102",   # self/cls annotations (deprecated)
+    "ANN401",             # allow Any where dynamic payloads demand it
     "S101",               # asserts ok in tests
     "T201",               # allow print in scripts/workers
+    "B008",               # FastAPI Depends()/File() in defaults is canonical
+    "RUF012",             # SQLAlchemy __table_args__ = (…) is mutable by design
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "ANN", "T201"]
+"tests/**" = ["S101", "S105", "S106", "S108", "ANN", "T201", "E501"]
 "src/quant/workers/**" = ["T201"]
 "scripts/**" = ["T201"]
+"alembic/**" = ["E501", "ANN"]
 
 [tool.mypy]
 python_version = "3.12"

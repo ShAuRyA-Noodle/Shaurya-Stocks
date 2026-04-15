@@ -61,7 +61,7 @@ async def ingest_macro_series(
             for sid in ids:
                 try:
                     info = await fred.series_info(sid)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     log.warning("fred series_info failed for %s: %s", sid, e)
                     continue
 
@@ -88,7 +88,7 @@ async def ingest_macro_series(
 
                 try:
                     obs = await fred.observations(sid, start=start)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     log.warning("fred obs failed for %s: %s", sid, e)
                     counts[sid] = 0
                     continue

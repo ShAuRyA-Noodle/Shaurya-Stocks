@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Awaitable, Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -49,19 +50,21 @@ async def get_current_user(
     return user
 
 
-def require_role(*roles: UserRole):
+def require_role(*roles: UserRole) -> Callable[..., Awaitable[User]]:
     async def _checker(user: User = Depends(get_current_user)) -> User:
         if user.role not in roles:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "insufficient role")
         return user
+
     return _checker
 
 
-def require_tier(*tiers: UserTier):
+def require_tier(*tiers: UserTier) -> Callable[..., Awaitable[User]]:
     async def _checker(user: User = Depends(get_current_user)) -> User:
         if user.tier not in tiers:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "tier upgrade required")
         return user
+
     return _checker
 
 

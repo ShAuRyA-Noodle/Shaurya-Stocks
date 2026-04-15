@@ -37,7 +37,9 @@ class TiingoAdapter(HttpAdapter):
     ) -> list[dict[str, Any]]:
         """
         Returns adjusted daily bars. Tiingo shape:
-        { date, close, high, low, open, volume, adjClose, adjHigh, adjLow, adjOpen, adjVolume, divCash, splitFactor }
+          { date, close, high, low, open, volume,
+            adjClose, adjHigh, adjLow, adjOpen, adjVolume,
+            divCash, splitFactor }
         """
         data = await self.get_json(
             f"/tiingo/daily/{symbol}/prices",
@@ -53,9 +55,7 @@ class TiingoAdapter(HttpAdapter):
         data = await self.get_json(f"/tiingo/fundamentals/{symbol}/statements")
         return data if isinstance(data, list) else []
 
-    async def news(
-        self, *, tickers: list[str] | None = None, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    async def news(self, *, tickers: list[str] | None = None, limit: int = 100) -> list[dict[str, Any]]:
         params: dict[str, Any] = {"limit": limit, "sortBy": "publishedDate"}
         if tickers:
             params["tickers"] = ",".join(tickers)

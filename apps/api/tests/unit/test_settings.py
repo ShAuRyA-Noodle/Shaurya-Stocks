@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from quant.config import Settings, get_settings
+from quant.config import get_settings
 
 
 def test_settings_loads() -> None:

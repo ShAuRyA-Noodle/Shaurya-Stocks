@@ -62,9 +62,7 @@ class TestAccessTokens:
         assert payload["typ"] == "access"
 
     def test_extra_claims(self) -> None:
-        tok = create_access_token(
-            uuid.uuid4(), role="trader", tier="pro", extra_claims={"scope": "read"}
-        )
+        tok = create_access_token(uuid.uuid4(), role="trader", tier="pro", extra_claims={"scope": "read"})
         assert decode_access_token(tok)["scope"] == "read"
 
     def test_rejects_tampered_token(self) -> None:

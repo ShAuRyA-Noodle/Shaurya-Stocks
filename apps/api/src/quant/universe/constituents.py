@@ -28,21 +28,36 @@ UniverseName = Literal["SP500", "NDX100", "DEV"]
 # DEV universe — 20 highly liquid names, sector-diversified
 # ------------------------------------------------------------------
 DEV_UNIVERSE: tuple[str, ...] = (
-    "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AVGO",
-    "JPM", "V", "MA", "WMT", "UNH", "JNJ", "PG", "XOM",
-    "HD", "LLY", "COST", "KO",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "TSLA",
+    "AVGO",
+    "JPM",
+    "V",
+    "MA",
+    "WMT",
+    "UNH",
+    "JNJ",
+    "PG",
+    "XOM",
+    "HD",
+    "LLY",
+    "COST",
+    "KO",
 )
 
 # ------------------------------------------------------------------
 # Stable public sources
 # ------------------------------------------------------------------
-SP500_CSV_URL = (
-    "https://raw.githubusercontent.com/datasets/"
-    "s-and-p-500-companies/main/data/constituents.csv"
-)
+SP500_CSV_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
 NDX100_WIKI_URL = "https://en.wikipedia.org/wiki/Nasdaq-100"
 
 _HEADERS = {"User-Agent": "quant-platform/1.0 (bootstrap-universe)"}
+
 
 # ------------------------------------------------------------------
 # SP500 — DataHub CSV
@@ -64,12 +79,14 @@ async def fetch_sp500(client: httpx.AsyncClient | None = None) -> list[dict[str,
             sym = (row.get("Symbol") or "").strip()
             if not sym:
                 continue
-            out.append({
-                "symbol": sym,
-                "name": (row.get("Security") or "").strip(),
-                "sector": (row.get("GICS Sector") or "").strip(),
-                "industry": (row.get("GICS Sub-Industry") or "").strip(),
-            })
+            out.append(
+                {
+                    "symbol": sym,
+                    "name": (row.get("Security") or "").strip(),
+                    "sector": (row.get("GICS Sector") or "").strip(),
+                    "industry": (row.get("GICS Sub-Industry") or "").strip(),
+                }
+            )
         return out
     finally:
         if owns:
@@ -106,13 +123,15 @@ async def fetch_ndx100(client: httpx.AsyncClient | None = None) -> list[dict[str
         # Isolate the Components table — it's the first wikitable with "Ticker" in it
         m = re.search(
             r'<table class="wikitable[^"]*"[^>]*id="constituents".*?</table>',
-            html, re.DOTALL,
+            html,
+            re.DOTALL,
         )
         if not m:
             # Fallback: first wikitable with a "Ticker" header
             m = re.search(
                 r'<table class="wikitable[^"]*"[^>]*>\s*<caption[^>]*>.*?</caption>.*?</table>',
-                html, re.DOTALL,
+                html,
+                re.DOTALL,
             )
         table_html = m.group(0) if m else html
 

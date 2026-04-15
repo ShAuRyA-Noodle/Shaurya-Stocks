@@ -74,10 +74,7 @@ class PolygonAdapter(HttpAdapter):
         Returns bars between start and end (inclusive), oldest first.
         Polygon key shape: { t: ms epoch, o, h, l, c, v, vw, n }
         """
-        path = (
-            f"/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/"
-            f"{start.isoformat()}/{end.isoformat()}"
-        )
+        path = f"/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{start.isoformat()}/{end.isoformat()}"
         params = {"adjusted": str(adjusted).lower(), "sort": "asc", "limit": limit}
         data = await self.get_json(path, params=params)
         return data.get("results") or []
@@ -93,15 +90,11 @@ class PolygonAdapter(HttpAdapter):
     # Corporate actions
     # ------------------------------------------------------------
     async def splits(self, symbol: str) -> list[dict[str, Any]]:
-        data = await self.get_json(
-            "/v3/reference/splits", params={"ticker": symbol, "limit": 1000}
-        )
+        data = await self.get_json("/v3/reference/splits", params={"ticker": symbol, "limit": 1000})
         return data.get("results") or []
 
     async def dividends(self, symbol: str) -> list[dict[str, Any]]:
-        data = await self.get_json(
-            "/v3/reference/dividends", params={"ticker": symbol, "limit": 1000}
-        )
+        data = await self.get_json("/v3/reference/dividends", params={"ticker": symbol, "limit": 1000})
         return data.get("results") or []
 
     # ------------------------------------------------------------

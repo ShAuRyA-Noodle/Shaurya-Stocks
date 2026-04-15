@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     app_timezone: str = "America/New_York"
 
     # -------- API --------
-    api_host: str = "0.0.0.0"
+    api_host: str = "0.0.0.0"  # noqa: S104  containerized API binds to all interfaces
     api_port: int = 8000
     api_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
@@ -111,12 +111,8 @@ class Settings(BaseSettings):
     polygon_api_key: SecretStr = Field(
         ..., description="Polygon.io — primary OHLCV, corporate actions, news v2"
     )
-    alpaca_api_key_id: SecretStr = Field(
-        ..., description="Alpaca — broker API key ID"
-    )
-    alpaca_api_secret_key: SecretStr = Field(
-        ..., description="Alpaca — broker API secret"
-    )
+    alpaca_api_key_id: SecretStr = Field(..., description="Alpaca — broker API key ID")
+    alpaca_api_secret_key: SecretStr = Field(..., description="Alpaca — broker API secret")
     alpaca_base_url: str = "https://paper-api.alpaca.markets"
     alpaca_data_url: str = "https://data.alpaca.markets"
     alpaca_stream_url: str = "wss://stream.data.alpaca.markets/v2/iex"
@@ -127,26 +123,18 @@ class Settings(BaseSettings):
     )
 
     # ---- Tier 2 (strong value-add) ----
-    groq_api_key: SecretStr = Field(
-        ..., description="Groq — LLM for news sentiment + signal explanations"
-    )
+    groq_api_key: SecretStr = Field(..., description="Groq — LLM for news sentiment + signal explanations")
     groq_model_fast: str = "llama-3.1-8b-instant"
     groq_model_smart: str = "llama-3.3-70b-versatile"
 
     finnhub_api_key: SecretStr = Field(
         ..., description="Finnhub — earnings calendar, insider transactions, recommendations"
     )
-    tiingo_api_key: SecretStr = Field(
-        ..., description="Tiingo — OHLCV fallback, fundamentals, IEX quotes"
-    )
-    marketaux_api_key: SecretStr = Field(
-        ..., description="Marketaux — financial-tagged news feed"
-    )
+    tiingo_api_key: SecretStr = Field(..., description="Tiingo — OHLCV fallback, fundamentals, IEX quotes")
+    marketaux_api_key: SecretStr = Field(..., description="Marketaux — financial-tagged news feed")
 
     # ---- Tier 3 (nice to have) ----
-    newsapi_key: SecretStr | None = Field(
-        default=None, description="NewsAPI — general news fallback"
-    )
+    newsapi_key: SecretStr | None = Field(default=None, description="NewsAPI — general news fallback")
     fmp_api_key: SecretStr | None = Field(
         default=None, description="FMP — analyst targets, estimates, revisions"
     )
@@ -192,7 +180,7 @@ class Settings(BaseSettings):
             if insecure:
                 raise ValueError(
                     "Refusing to boot in production with a dev JWT secret. "
-                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                    'Generate with: python -c "import secrets; print(secrets.token_urlsafe(64))"'
                 )
             if self.app_debug:
                 raise ValueError("APP_DEBUG must be false in production")

@@ -38,7 +38,10 @@ class NewsApiAdapter(HttpAdapter):
     ) -> list[dict[str, Any]]:
         self._require_key()
         params: dict[str, Any] = {
-            "q": query, "language": language, "sortBy": sort_by, "pageSize": page_size,
+            "q": query,
+            "language": language,
+            "sortBy": sort_by,
+            "pageSize": page_size,
         }
         if from_iso:
             params["from"] = from_iso
