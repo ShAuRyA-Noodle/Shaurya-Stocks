@@ -170,7 +170,7 @@ def run_backtest(cfg: RunConfig) -> dict[str, Any]:
     # Per-period returns → annualized numbers already on result; compute DSR.
     rets = result.per_period_returns
     periods_per_year = 252.0 / cfg.walk_forward.test_days
-    obs_sharpe = sharpe_ratio(rets, periods_per_year=int(round(periods_per_year)))
+    obs_sharpe = sharpe_ratio(rets, periods_per_year=round(periods_per_year))
     skew = _safe_moment(rets, 3)
     kurt = _safe_moment(rets, 4)
     dsr = (
@@ -244,8 +244,7 @@ def _write_artifacts(
 
     # Manifest — data_fingerprint is a sha of (date, symbol, adj_close) tuples.
     data_tuples: list[tuple[Any, ...]] = [
-        (r["date"].isoformat(), r["symbol"], float(r["adj_close"]))
-        for r in prices.iter_rows(named=True)
+        (r["date"].isoformat(), r["symbol"], float(r["adj_close"])) for r in prices.iter_rows(named=True)
     ]
     manifest = build_manifest(config=_config_to_dict(cfg), data_tuples=data_tuples)
 
