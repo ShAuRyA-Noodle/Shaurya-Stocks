@@ -23,11 +23,22 @@ export const metadata: Metadata = {
   description:
     "Gradient-boosted trees (LightGBM) on triple-barrier labels, purged K-Fold CV with embargo, walk-forward backtests. Verified by Deflated Sharpe and Probability of Backtest Overfitting. Real providers, zero synthetic data.",
   icons: {
-    icon: [
-      { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: "/apple-icon.png",
+  },
+  openGraph: {
+    title: "ORACLE — Gradient-boosted signals. Verified.",
+    description:
+      "LightGBM · Purged K-Fold · DSR + PBO · Real data only. Walk-forward verified quantitative signals on S&P 500 + NDX 100.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ORACLE — Gradient-boosted signals. Verified.",
+    description:
+      "LightGBM · Purged K-Fold · DSR + PBO · Real data only.",
+    images: ["/og-image.png"],
   },
 }
 

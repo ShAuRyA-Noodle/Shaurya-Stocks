@@ -1,0 +1,44 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="aura" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#00F0FF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#030304" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="grid-fade" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00F0FF" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#00F0FF" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="#030304"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#aura)"/>
+
+  <!-- Rings mark -->
+  <g transform="translate(120 120)">
+    <circle cx="0" cy="0" r="60" stroke="#00F0FF" stroke-width="4" fill="none" opacity="0.25"/>
+    <circle cx="0" cy="0" r="40" stroke="#00F0FF" stroke-width="3" fill="none" opacity="0.55"/>
+    <circle cx="0" cy="0" r="20" stroke="#00F0FF" stroke-width="2" fill="none" opacity="0.85"/>
+    <circle cx="0" cy="0" r="9" fill="#00F0FF"/>
+  </g>
+
+  <text x="210" y="135" fill="#FFFFFF" font-family="system-ui, -apple-system, Inter, sans-serif"
+        font-size="34" font-weight="600" letter-spacing="12" opacity="0.9">ORACLE</text>
+
+  <!-- Headline -->
+  <text x="120" y="360" fill="#00F0FF" font-family="system-ui, -apple-system, Inter, sans-serif"
+        font-size="124" font-weight="700" letter-spacing="-4">Gradient-boosted</text>
+  <text x="120" y="480" fill="#FFFFFF" font-family="system-ui, -apple-system, Inter, sans-serif"
+        font-size="124" font-weight="700" letter-spacing="-4" opacity="0.92">signals. Verified.</text>
+
+  <!-- Strapline -->
+  <text x="120" y="546" fill="#B8B8B8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+        font-size="22" letter-spacing="3">LIGHTGBM  ·  PURGED K-FOLD  ·  DSR + PBO  ·  REAL DATA ONLY</text>
+
+  <!-- Bottom rule -->
+  <line x1="120" y1="580" x2="1080" y2="580" stroke="#00F0FF" stroke-opacity="0.25" stroke-width="1"/>
+</svg>
