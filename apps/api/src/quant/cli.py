@@ -28,9 +28,11 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 universe_app = typer.Typer(help="Universe operations.")
 backfill_app = typer.Typer(help="Data backfills.")
 flow_app = typer.Typer(help="Run Prefect flows locally (no orchestrator).")
+backtest_app = typer.Typer(help="Walk-forward backtest runner + repro manifest.")
 app.add_typer(universe_app, name="universe")
 app.add_typer(backfill_app, name="backfill")
 app.add_typer(flow_app, name="flow")
+app.add_typer(backtest_app, name="backtest")
 
 
 def _setup_logging() -> None:
@@ -169,6 +171,29 @@ def flow_hourly_news() -> None:
 
     res = _run(hourly_news_flow())
     typer.echo(json.dumps(res, indent=2))
+
+
+# ---------------------------------------------------------------
+# backtest
+# ---------------------------------------------------------------
+@backtest_app.command("run")
+def backtest_run(
+    config: Annotated[str, typer.Argument(help="Path to a YAML or JSON run config")],
+) -> None:
+    """Run one walk-forward backtest end-to-end and write the artifact bundle."""
+    from quant.backtest.runner import load_config, run_backtest
+
+    _setup_logging()
+    cfg = load_config(config)
+    typer.echo(f"Running backtest '{cfg.name}' ({cfg.start_date} → {cfg.end_date})")
+    report = run_backtest(cfg)
+    m = report["metrics"]
+    typer.echo(
+        f"Done. Sharpe={m['sharpe']:.3f}  DSR P={m['deflated_sharpe_p']:.3f}  "
+        f"DD={m['max_drawdown']:.1%}  Turnover={m['turnover']:.1f}x  "
+        f"AnnRet={m['annualized_return']:.2%}  AnnVol={m['annualized_vol']:.2%}"
+    )
+    typer.echo(f"Artifacts: {report['artifacts']['dir']}")
 
 
 if __name__ == "__main__":
