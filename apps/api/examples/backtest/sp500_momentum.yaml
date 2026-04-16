@@ -1,0 +1,29 @@
+# Example backtest config — 6-month momentum baseline on the Kaggle S&P 500
+# 5-year snapshot. The null hypothesis an ML model must beat.
+#
+# Run:  python -m quant.cli backtest run examples/backtest/sp500_momentum.yaml
+
+name: sp500_momentum_126
+prices_csv: examples/backtest/sp500_5yr_adjusted.csv
+start_date: 2014-01-02   # skip the first ~year so the lookback has history
+end_date:   2018-02-07
+output_dir: examples/backtest/artifacts
+
+walk_forward:
+  train_days: 252        # 1 year in-sample window
+  test_days: 21          # 1 month out-of-sample rebalance
+  top_k: 25              # pick top 25 momentum names
+  cost_bps: 5.0          # 5 bps round-trip transaction cost
+  initial_capital: 100000.0
+
+signal:
+  kind: momentum
+  params:
+    lookback_days: 126   # 6 trading months
+
+# DSR inputs: `n_trials` reflects how many candidate configs you *would*
+# have tried in this sweep (honest inflation adjustment). Set to 1 for a
+# single pre-registered run.
+stats:
+  n_trials: 8
+  sharpes_std: 0.5

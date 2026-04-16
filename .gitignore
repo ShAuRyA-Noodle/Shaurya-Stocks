@@ -61,6 +61,10 @@ data/legacy/*
 *.parquet
 *.feather
 
+# ---- Backtest example derived artifacts (regenerable via examples/backtest/*) ----
+apps/api/examples/backtest/sp500_5yr_adjusted.csv
+apps/api/examples/backtest/artifacts/
+
 # ---- Models (tracked via MLflow) ----
 apps/api/models/*.pkl
 apps/api/models/*.joblib
