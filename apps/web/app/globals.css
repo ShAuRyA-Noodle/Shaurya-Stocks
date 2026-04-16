@@ -158,9 +158,24 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
   }
 
-  /* Smooth scrolling */
+  /* Lenis handles smoothness — native smooth would fight it */
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
+  }
+
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Shared GPU + text hinting for motion sections */
+  .will-change-transform {
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }
 
@@ -202,4 +217,51 @@
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
+}
+
+@keyframes scroll-dot {
+  0% { transform: translateY(-100%); }
+  60% { transform: translateY(220%); }
+  100% { transform: translateY(220%); }
+}
+
+/* SplitType helpers: make sure chars animate cleanly */
+.char, .word, .line {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+.line {
+  overflow: hidden;
+}
+
+/* Respect reduced motion everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keep selection legible over neon */
+::selection {
+  background: oklch(0.8 0.15 195 / 0.35);
+  color: oklch(0.98 0 0);
+}
+
+/* Hide scrollbar thumb visually (keep functionality) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.2 0 0);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.3 0 0);
 }
