@@ -172,10 +172,14 @@ export function ScrollHero() {
         }}
       />
 
-      {/* Floating orbs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <span className="absolute top-1/4 left-1/5 w-56 h-56 rounded-full blur-3xl opacity-30 bg-[var(--color-primary)] animate-pulse-glow" />
-        <span className="absolute bottom-1/4 right-1/5 w-72 h-72 rounded-full blur-3xl opacity-25 bg-[var(--color-profit)] animate-pulse-glow" />
+      {/* Floating orbs — wrapper animates opacity, inner keeps blur intact */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20">
+        <span className="absolute top-[12%] left-[6%] w-64 h-64 animate-[hero-breath_8s_ease-in-out_infinite] opacity-40">
+          <span className="block w-full h-full rounded-full bg-[var(--color-primary)] [filter:blur(80px)]" />
+        </span>
+        <span className="absolute bottom-[10%] right-[6%] w-80 h-80 animate-[hero-breath_10s_ease-in-out_infinite_-2s] opacity-30">
+          <span className="block w-full h-full rounded-full bg-[var(--color-profit)] [filter:blur(90px)]" />
+        </span>
       </div>
 
       {/* Content */}
@@ -191,8 +195,11 @@ export function ScrollHero() {
 
         <h1
           ref={headlineRef}
-          className="text-[clamp(3.5rem,12vw,10rem)] font-bold tracking-[-0.035em] leading-[0.85] text-gradient-cyan will-change-transform [perspective:1000px]"
-          style={{ textShadow: "0 0 60px rgba(0,240,255,0.25)" }}
+          className="text-[clamp(3.5rem,12vw,10rem)] font-bold tracking-[-0.035em] leading-[0.85] text-primary will-change-transform [perspective:1000px]"
+          style={{
+            textShadow:
+              "0 0 60px rgba(0,240,255,0.35), 0 0 120px rgba(0,240,255,0.18)",
+          }}
         >
           ORACLE
         </h1>
@@ -201,9 +208,9 @@ export function ScrollHero() {
           ref={subRef}
           className="mt-8 text-base md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-light"
         >
-          The definitive AI-driven quantitative trading terminal.
-          Neural ensemble predictions meet institutional-grade execution.
-          Built on real market data. Verified by deflated Sharpe.
+          Gradient-boosted signals on real market data. Triple-barrier labels,
+          purged K-Fold CV, walk-forward backtests. Verified by Deflated Sharpe
+          and Probability of Backtest Overfitting.
         </p>
 
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -222,13 +229,14 @@ export function ScrollHero() {
           </Link>
         </div>
 
-        {/* Scroll cue */}
-        <div className="hero-cta absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground">
-          <span>Scroll</span>
-          <span className="relative block w-px h-14 bg-gradient-to-b from-primary/80 to-transparent overflow-hidden">
-            <span className="absolute inset-x-0 top-0 h-4 bg-primary animate-[scroll-dot_2.4s_ease-in-out_infinite]" />
-          </span>
-        </div>
+      </div>
+
+      {/* Scroll cue (sibling of content, positioned at section bottom) */}
+      <div className="hero-cta pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3 text-[11px] font-mono uppercase tracking-[0.3em] text-muted-foreground">
+        <span>Scroll</span>
+        <span className="relative block w-px h-12 bg-gradient-to-b from-primary/80 to-transparent overflow-hidden">
+          <span className="absolute inset-x-0 top-0 h-3 bg-primary animate-[scroll-dot_2.4s_ease-in-out_infinite]" />
+        </span>
       </div>
 
       {/* Fade to next section */}

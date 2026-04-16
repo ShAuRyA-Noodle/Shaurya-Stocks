@@ -19,9 +19,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "ORACLE | AI-Driven Quantitative Trading Terminal",
+  title: "ORACLE | Gradient-boosted trading signals on real market data",
   description:
-    "The definitive AI-driven quantitative trading terminal. Neural ensemble predictions meet institutional-grade execution. Built on real market data. Verified by deflated Sharpe.",
+    "Gradient-boosted trees (LightGBM) on triple-barrier labels, purged K-Fold CV with embargo, walk-forward backtests. Verified by Deflated Sharpe and Probability of Backtest Overfitting. Real providers, zero synthetic data.",
   icons: {
     icon: [
       { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },

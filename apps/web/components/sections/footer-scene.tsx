@@ -80,7 +80,11 @@ export function FooterScene() {
         </div>
         <h2
           ref={bigRef}
-          className="text-[clamp(3rem,13vw,11rem)] font-semibold leading-[0.9] tracking-[-0.035em] text-gradient-cyan [perspective:1000px] overflow-hidden"
+          className="text-[clamp(3rem,13vw,11rem)] font-semibold leading-[0.9] tracking-[-0.035em] text-primary [perspective:1000px] overflow-hidden"
+          style={{
+            textShadow:
+              "0 0 60px rgba(0,240,255,0.35), 0 0 120px rgba(0,240,255,0.18)",
+          }}
         >
           RUN THE ORACLE
         </h2>

@@ -14,11 +14,11 @@ const PANELS = [
     k: "01",
     icon: Brain,
     eyebrow: "Signals",
-    title: "Ensemble neural forecasts,\nranked every morning.",
+    title: "LightGBM ensemble.\nRanked every morning.",
     body:
-      "LightGBM gradients, gradient-boosted trees, and transformer sequence models vote on a single conviction score per name. Top-K enters the book. Nothing else does.",
-    stat: "2 500",
-    statLabel: "Names in universe",
+      "Triple-barrier labels (López de Prado). Gradient-boosted trees trained with purged K-Fold CV + embargo so future bars never leak into the past. Folds average into a single conviction score per name. No deep learning, no transformers — just disciplined gradient boosting.",
+    stat: "SP500 + NDX100",
+    statLabel: "Active universe",
   },
   {
     k: "02",

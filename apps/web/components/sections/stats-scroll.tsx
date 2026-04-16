@@ -29,21 +29,25 @@ export function StatsScroll() {
       nums.forEach((el) => {
         const target = Number(el.dataset.target || "0")
         const suffix = el.dataset.suffix || ""
+        if (reduced) {
+          el.textContent = `${target}${suffix}`
+          return
+        }
         const o = { v: 0 }
-        const run = () =>
-          gsap.to(o, {
-            v: target,
-            duration: reduced ? 0 : 1.6,
-            ease: "power3.out",
-            onUpdate: () => {
-              el.textContent = `${Math.round(o.v)}${suffix}`
-            },
-          })
+        el.textContent = `0${suffix}`
         ScrollTrigger.create({
           trigger: el,
-          start: "top 80%",
+          start: "top 85%",
           once: true,
-          onEnter: run,
+          onEnter: () =>
+            gsap.to(o, {
+              v: target,
+              duration: 1.6,
+              ease: "power3.out",
+              onUpdate: () => {
+                el.textContent = `${Math.round(o.v)}${suffix}`
+              },
+            }),
         })
       })
 
@@ -96,7 +100,8 @@ export function StatsScroll() {
                 data-target={s.value}
                 data-suffix={s.suffix}
               >
-                0{s.suffix}
+                {s.value}
+                {s.suffix}
               </div>
               <div className="mt-3 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
                 {s.label}

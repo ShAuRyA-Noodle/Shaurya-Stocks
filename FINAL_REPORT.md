@@ -160,7 +160,10 @@ All four jobs green on the final commit `9d5985c`.
 
 ## 5. Architectural decisions (locked)
 
-1. **Universe:** S&P 500 + Russell 2000 (≈2500 names) — real liquid names only.
+1. **Universe:** S&P 500 + NASDAQ-100 (~550 unique liquid names). Sources:
+   DataHub CC0 CSV for SP500, Wikipedia scrape for NDX100. Historical
+   point-in-time membership (for survivorship-bias elimination) requires a
+   paid vendor feed — schema supports it, not bought yet.
 2. **Hosting:** self-hostable on a single box; stateless api, stateful postgres + redis.
 3. **DB:** Postgres 16 with TimescaleDB extension hooks left open for bars table.
 4. **Sync style:** async everywhere in the api (SQLAlchemy 2.0 async, `asyncpg`).
@@ -334,7 +337,25 @@ build (api + web). All four green.
 
 ---
 
-## 11. Closing
+## 11. Trust & authentication
+
+See [TRUST.md](./TRUST.md) for the full breakdown of:
+
+- what ML is used (LightGBM gradient-boosted trees — nothing else);
+- what is **not** used (no transformers, no LSTMs, no deep learning at all,
+  no generative AI in the trade-decision path);
+- the five mechanisms that make a reported Sharpe credible (triple-barrier
+  labels, purged K-Fold + embargo, walk-forward backtests, Deflated Sharpe
+  Ratio, PBO via CSCV);
+- and the four artifacts every published number must ship with (repro
+  manifest, DSR, PBO, MLflow run ID).
+
+If a number from this repo is not attached to all four, it has not cleared
+the bar.
+
+---
+
+## 12. Closing
 
 You asked for the whole beast. The beast is built: data plane, model plane,
 execution plane, streaming plane, ops plane, and a statistically honest

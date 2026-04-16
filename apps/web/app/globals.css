@@ -225,6 +225,11 @@
   100% { transform: translateY(220%); }
 }
 
+@keyframes hero-breath {
+  0%, 100% { opacity: var(--breath-from, 0.4); transform: translate3d(0, 0, 0) scale(1); }
+  50% { opacity: var(--breath-to, 0.6); transform: translate3d(0, -10px, 0) scale(1.05); }
+}
+
 /* SplitType helpers: make sure chars animate cleanly */
 .char, .word, .line {
   display: inline-block;
