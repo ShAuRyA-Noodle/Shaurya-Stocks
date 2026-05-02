@@ -64,6 +64,8 @@ data/legacy/*
 # ---- Backtest example derived artifacts ----
 # The adapted CSV is large (~30MB) and regenerable from data/legacy/.
 apps/api/examples/backtest/sp500_5yr_adjusted.csv
+# Synced into the web Docker build context by `npm run sync-artifacts`.
+apps/web/.oracle-artifacts/
 # By default, artifacts are gitignored (regenerable). Force-track the
 # specific demo bundles so the web build + CI have real, committed numbers
 # without needing the 28MB source dataset to regenerate.

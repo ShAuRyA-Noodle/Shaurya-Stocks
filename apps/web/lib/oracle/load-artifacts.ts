@@ -14,7 +14,7 @@
  *     && .venv/bin/python -m quant.cli backtest run examples/backtest/sp500_momentum.yaml
  */
 
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 import type {
@@ -34,44 +34,40 @@ const REGEN_HINT =
   "Regenerate with: cd apps/api && .venv/bin/python examples/backtest/prepare_sp500_5yr.py " +
   "&& .venv/bin/python -m quant.cli backtest run examples/backtest/sp500_momentum.yaml"
 
+/**
+ * Two artifact roots, tried in order:
+ *   1. `<cwd>/.oracle-artifacts/` — populated by the npm `prebuild` hook
+ *      and by the CI "Sync artifacts" step. Always inside the Docker
+ *      build context, so the `web` image can render `/results`.
+ *   2. `<cwd>/../api/examples/backtest/artifacts/` — the canonical source
+ *      in a checked-out monorepo. Used in local dev when prebuild hasn't
+ *      run yet, and on CI before the sync step.
+ */
+const ARTIFACT_ROOTS: readonly string[] = [
+  join(process.cwd(), ".oracle-artifacts"),
+  join(process.cwd(), "..", "api", "examples", "backtest", "artifacts"),
+]
+
+function resolveArtifact(runName: string, file: string): string {
+  for (const root of ARTIFACT_ROOTS) {
+    const candidate = join(root, runName, file)
+    if (existsSync(candidate)) return candidate
+  }
+  // Fall through to the canonical path so the caller's error message
+  // names a path the user can act on.
+  return join(ARTIFACT_ROOTS[ARTIFACT_ROOTS.length - 1] ?? "", runName, file)
+}
+
 function artifactPath(file: string): string {
-  // Resolve relative to the monorepo root (web app cwd is apps/web at build).
-  return join(
-    process.cwd(),
-    "..",
-    "api",
-    "examples",
-    "backtest",
-    "artifacts",
-    RUN_NAME,
-    file,
-  )
+  return resolveArtifact(RUN_NAME, file)
 }
 
 function sweepArtifactPath(file: string): string {
-  return join(
-    process.cwd(),
-    "..",
-    "api",
-    "examples",
-    "backtest",
-    "artifacts",
-    SWEEP_NAME,
-    file,
-  )
+  return resolveArtifact(SWEEP_NAME, file)
 }
 
 function pitArtifactPath(file: string): string {
-  return join(
-    process.cwd(),
-    "..",
-    "api",
-    "examples",
-    "backtest",
-    "artifacts",
-    PIT_RUN_NAME,
-    file,
-  )
+  return resolveArtifact(PIT_RUN_NAME, file)
 }
 
 function readJson<T>(file: string): T {

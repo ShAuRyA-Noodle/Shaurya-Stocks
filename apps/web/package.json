@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync-artifacts": "node scripts/sync-oracle-artifacts.mjs",
+    "prebuild": "node scripts/sync-oracle-artifacts.mjs",
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
