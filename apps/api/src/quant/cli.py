@@ -494,5 +494,93 @@ def data_verify(
         raise typer.Exit(code=1)
 
 
+@paper_app.command("now")
+def paper_now(
+    signal_kind: Annotated[str, typer.Option(help="momentum | low_vol | mean_reversion")] = "momentum",
+    lookback_days: Annotated[int, typer.Option(help="Lookback for the signal AND for bar fetch")] = 126,
+    top_k: Annotated[int, typer.Option(help="Number of positions to hold")] = 5,
+    portfolio_value: Annotated[
+        float, typer.Option(help="Override broker equity (default = use account)")
+    ] = 0.0,
+    submit: Annotated[bool, typer.Option(help="Actually submit orders (otherwise plan-only)")] = False,
+    confirm: Annotated[
+        bool, typer.Option(help="Required alongside --submit before any order is sent")
+    ] = False,
+) -> None:
+    """
+    Live paper-trading session: pull current Alpaca paper positions + recent
+    Alpaca data bars, compute the signal at today's date, propose orders.
+    Submission requires --submit AND --confirm AND TRADING_ENABLED=true AND
+    ALPACA_PAPER=true (any False => plan-only).
+    """
+    from quant.adapters.alpaca import AlpacaBrokerAdapter, AlpacaDataAdapter
+    from quant.backtest.runner import SignalSpec, build_signal
+    from quant.execution.broker import AlpacaBroker
+    from quant.execution.live_session import run_live_session
+    from quant.universe.constituents import DEV_UNIVERSE
+
+    _setup_logging()
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    spec = SignalSpec(kind=signal_kind, params={"lookback_days": lookback_days})
+    sig = build_signal(spec)
+    universe = list(DEV_UNIVERSE)
+
+    async def _go() -> None:
+        from decimal import Decimal as _Decimal
+
+        broker_adapter = AlpacaBrokerAdapter()
+        data_adapter = AlpacaDataAdapter()
+        broker = AlpacaBroker()
+        try:
+            result = await run_live_session(
+                signal=sig,
+                universe=universe,
+                broker=broker,
+                broker_adapter=broker_adapter,
+                data_adapter=data_adapter,
+                top_k=top_k,
+                lookback_days=max(lookback_days + 30, 200),
+                portfolio_value_override=_Decimal(str(portfolio_value)) if portfolio_value > 0 else None,
+                trading_enabled=settings.trading_enabled,
+                alpaca_paper=settings.alpaca_paper,
+                confirm=confirm and submit,
+            )
+        finally:
+            await broker_adapter.aclose()
+            await data_adapter.aclose()
+            await broker.aclose()
+
+        typer.echo(
+            f"# session={result.session_id} as_of={result.as_of} "
+            f"account_equity=${result.account.equity} status={result.account.status} "
+            f"paper={result.account.paper}"
+        )
+        typer.echo(
+            f"# {result.n_symbols_scored} symbols scored, "
+            f"top_{top_k} chosen: {', '.join(result.target_weights.keys())}"
+        )
+        typer.echo(f"# {len(result.proposals)} proposed orders:")
+        for p in result.proposals:
+            typer.echo(
+                f"  {p.side:<4} {p.symbol:<6} qty={p.quantity:<5}  "
+                f"target=${p.target_value}  current=${p.current_value}"
+            )
+        if result.submitted:
+            typer.echo(f"# SUBMITTED {len(result.acks)} orders to Alpaca paper broker")
+            for ack in result.acks:
+                typer.echo(
+                    f"  {ack.broker_order_id}  client_id={ack.client_order_id[:16]}  status={ack.status}"
+                )
+        else:
+            typer.echo(
+                "# plan-only mode — pass --submit AND --confirm AND set TRADING_ENABLED=true "
+                "AND ALPACA_PAPER=true to actually send orders"
+            )
+
+    _run(_go())
+
+
 if __name__ == "__main__":
     app()
