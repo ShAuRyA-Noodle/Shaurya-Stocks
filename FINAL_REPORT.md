@@ -367,3 +367,120 @@ contracts that already exist; neither requires touching the core.
 No shortcuts, no fake data, no hand-wavy stubs. If a thing is listed above as
 built, it is in `main` and it passed CI. If it isn't listed, it isn't built —
 and I said so.
+
+---
+
+## 13. Update — Tier 0/1 ships after Sprint 9
+
+**Date:** 2026-05-03
+
+The "two things remaining" called out in §12 (frontend finish + backtest-sweep
+orchestrator CLI) both shipped, plus another full layer of credibility +
+ML-loop work. Test count grew from 67 → 140+. Source-file count under
+`apps/api/src/quant` grew from 68 → 80+.
+
+Concretely, the following landed on `main` after Sprint 9:
+
+### Backtest plane
+
+- **`quant.backtest.runner`** — config-driven RunConfig, YAML+JSON loader,
+  4-file artifact bundle (`report.json` + `equity_curve.csv` + `manifest.json`
+  + `config.snapshot.json`), reproducibility manifest wired in. CLI:
+  `quant backtest run <config>`.
+- **`quant.backtest.sweep`** — multi-config sweeps with cross-config PBO
+  via the existing CSCV implementation. Two enforced invariants: shared
+  prices_csv/window and shared train_days/test_days. CLI: `quant backtest
+  sweep <config>`.
+- **`quant.backtest.universe_filter`** + `walk_forward(..., universe_filter=)`
+  — point-in-time S&P 500 enforcement at every rebalance. RunConfig grew a
+  `universe: "raw" | "sp500_pit"` field; SweepConfig got a sweep-wide variant.
+- **Three new baseline signals**: `LowVolSignal` (-stddev of log returns),
+  `MeanReversionSignal` (-trailing return), `MLPredictionsSignal` (replays a
+  trained LightGBM's OOF predictions through the same engine). Registry
+  dispatch in `build_signal()`.
+
+### ML plane
+
+- **`quant.ml.trainer`** — end-to-end LightGBM trainer. Loads OHLCV → builds
+  features (existing `quant.features.technical`) → triple-barrier labels →
+  purged K-fold CV with 1% embargo → trains LightGBM multiclass per fold
+  → aggregates OOF predictions → writes a 5-file artifact bundle + MLflow
+  run. CLI: `quant ml train <config>`.
+- **`quant.ml.calibration`** — isotonic-per-class probability calibration
+  with Expected Calibration Error diagnostic (raw + calibrated). Calibrators
+  fit on OOF predictions only; no leakage past purged K-fold's protections.
+  Real measurement on `sp500_lightgbm_v1`: macro ECE 0.0098 → 0.0056 (-43%).
+
+### Universe / data plane
+
+- **`quant.universe.point_in_time`** — point-in-time S&P 500 membership
+  reconstructed from the Wikipedia changes table. Reverse-walk algorithm
+  from today's set. CLI: `quant universe point-in-time --as-of <date>`.
+  Live verification scraped 394 real changes; reconstructs 505 symbols
+  as of 2014-01-02 vs 503 today.
+- **`quant.data.verify`** — prices-CSV verifier (schema, dtypes, nulls,
+  non-positive prices, NaN/Inf, duplicate keys, unsorted dates, large gaps).
+  CLI: `quant data verify <path> [--json-out report.json]`. Live: 619k rows /
+  505 symbols / 0 errors / 3 warnings on the demo CSV.
+
+### Execution plane
+
+- **`quant.execution.paper_session`** — broker-agnostic order computation
+  + sequential submission. Idempotent client_order_ids, sells-before-buys,
+  weight-sum + missing-price + non-positive-price guards. CLI: `quant paper
+  plan <config> --as-of <date>` prints proposed orders without submission.
+  Real run on the momentum config picks NFLX/NVDA/AMZN at 2018-01-31.
+
+### Web plane
+
+- **`/results`** — Next.js 16 page that renders the headline backtest
+  bundle from disk. KPI grid with all eight metrics; HonestyBlock surfaces
+  PBO=0.557 with plain-English reading, the survivorship-bias premium
+  (-0.61 Sharpe / -7.7 pp annual return), and a 3-row strategy table when
+  the LightGBM artifact is present. SVG equity curve, click-to-copy
+  reproducibility block (code_sha + config_hash + data_fingerprint), four-
+  bullet brutal disclaimer, links to TRUST.md + REPRODUCE.md.
+- **Build pipeline** — committed demo bundles (`sp500_momentum_126`,
+  `sp500_momentum_126_pit`, `sp500_ml_predictions_v1`,
+  `sp500_momentum_sweep`, `sp500_momentum_sweep_pit`); npm `prebuild` hook +
+  CI step that copy them into `apps/web/.oracle-artifacts/` so the web
+  Docker context can find them.
+
+### API plane
+
+- **`/api/v1/backtests`** family — five read-only endpoints (list, one,
+  equity, manifest, config) serving the on-disk artifacts via Pydantic v2
+  strict models. Path-traversal hardened (regex whitelist + resolve()-based
+  containment check). 19 integration tests against real artifact bundles.
+
+### Documentation
+
+- **`TRUST.md`** stamped 2026-05-03; sections 2.8 (calibration) + 2.9
+  (survivorship correction) + §6 headline-numbers table added.
+- **`REPRODUCE.md`** — cold-start reproduction guide. Verifies every
+  manifest field independently; documents ULP-drift bug as known issue.
+- **`README.md`** rewritten to ground every claim in a real artifact or
+  a citable file path.
+
+### Real headline numbers (current state)
+
+| Run | Universe | Sharpe | DSR P | AnnRet | DD | Notes |
+|---|---|---:|---:|---:|---:|---|
+| `sp500_momentum_126`     | survivors-only | 1.725 | 0.998 | 22.48% | 8.4%  | Baseline |
+| `sp500_momentum_126_pit` | point-in-time  | 1.112 | 0.927 | 14.74% | 10.0% | Joined-after bias removed |
+| `sp500_ml_predictions_v1`| trainer subset | 1.408 | 1.000 | 16.06% | 8.0%  | LightGBM signal |
+| `sp500_momentum_sweep`   | 13 configs raw | — | — | — | — | **PBO = 0.557** |
+| `sp500_momentum_sweep_pit` | 13 configs PIT | — | — | — | — | **PBO = 0.629** |
+
+### Still NOT built (truthful)
+
+- No live paper-trading worker (needs Alpaca paper API key from operator).
+- No public deploy (needs hosting budget ~$25/mo).
+- No live PnL track record (needs paper trading running for months).
+- "Exited-and-removed-from-data" survivorship bias remains (needs
+  delisted-name price coverage from Polygon Stocks / Sharadar / Norgate).
+- No multi-asset support, no tick data, no order routing live.
+
+§12's claim ("the beast is built") was mostly true at Sprint 9, with two
+named gaps. Both gaps closed plus another credibility tier landed. The honest
+qualifier still applies: this is research infrastructure, not a fund.
