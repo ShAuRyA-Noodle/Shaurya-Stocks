@@ -77,6 +77,30 @@ def universe_list(
     typer.echo("\n".join(syms))
 
 
+@universe_app.command("point-in-time")
+def universe_point_in_time(
+    as_of: Annotated[str, typer.Option(help="YYYY-MM-DD — date to reconstruct")],
+    output: Annotated[str, typer.Option(help="Optional: write symbols to a file")] = "",
+) -> None:
+    """Reconstruct point-in-time S&P 500 membership via Wikipedia changes table."""
+    from quant.universe.constituents import fetch_sp500
+    from quant.universe.point_in_time import fetch_sp500_changes, members_as_of
+
+    _setup_logging()
+    target = date.fromisoformat(as_of)
+    changes = fetch_sp500_changes()
+    current = {row["symbol"] for row in _run(fetch_sp500())}
+    syms = members_as_of(target, changes, current)
+    typer.echo(f"# SP500 as of {target}: {len(syms)} symbols (vs {len(current)} today)")
+    if output:
+        from pathlib import Path
+
+        Path(output).write_text("\n".join(syms) + "\n", encoding="utf-8")
+        typer.echo(f"# wrote {output}")
+    else:
+        typer.echo("\n".join(syms))
+
+
 # ---------------------------------------------------------------
 # backfill
 # ---------------------------------------------------------------
