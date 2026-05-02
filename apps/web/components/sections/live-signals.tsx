@@ -90,7 +90,7 @@ export function LiveSignals() {
               Live · latest session
             </div>
             <h2 className="text-3xl md:text-5xl font-semibold tracking-[-0.02em]">
-              Today's ranked signals.
+              Today&apos;s ranked signals.
             </h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm">
