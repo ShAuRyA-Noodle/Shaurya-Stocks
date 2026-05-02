@@ -120,7 +120,6 @@ def test_apply_calibrators_returns_valid_simplex() -> None:
 
 def test_apply_calibrators_handles_all_zero_row_via_uniform_fallback() -> None:
     """If every per-class calibrator outputs ~0 for a row, fall back to uniform."""
-    n_classes = 3
     # Synthesize calibrators by fitting on labels that never select class 0.
     rng = np.random.default_rng(0)
     raw_fit = rng.dirichlet([1.0, 1.0, 1.0], size=500)
@@ -143,5 +142,5 @@ def test_apply_calibrators_rejects_shape_mismatch() -> None:
         np.array([[0.1, 0.9], [0.7, 0.3]]),
         np.array([1, 0]),
     )
-    with pytest.raises(ValueError, match="classes, but .* calibrators"):
+    with pytest.raises(ValueError, match=r"classes, but .* calibrators"):
         apply_calibrators(raw, calibrators)
