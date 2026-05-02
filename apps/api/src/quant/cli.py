@@ -494,6 +494,91 @@ def data_verify(
         raise typer.Exit(code=1)
 
 
+@paper_app.command("status")
+def paper_status(
+    json_out: Annotated[str, typer.Option(help="Optional path to write the JSON state")] = "",
+) -> None:
+    """
+    Read the live Alpaca paper account state — equity, cash, buying power,
+    open positions with mark-to-market PnL. Read-only; never sends an order.
+    """
+    from quant.adapters.alpaca import AlpacaBrokerAdapter
+    from quant.execution.live_session import (
+        fetch_account_snapshot,
+        fetch_current_positions,
+    )
+
+    _setup_logging()
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    async def _go() -> None:
+        from decimal import Decimal as _Decimal
+
+        adapter = AlpacaBrokerAdapter()
+        try:
+            snap = await fetch_account_snapshot(adapter)
+            positions = await fetch_current_positions(adapter)
+            # Re-pull raw positions to extract avg_entry + market_value for PnL.
+            raw_positions = await adapter.positions()
+        finally:
+            await adapter.aclose()
+
+        raw_by_sym = {r.get("symbol", ""): r for r in raw_positions if isinstance(r, dict)}
+
+        typer.echo(
+            f"# account: equity=${snap.equity}  cash=${snap.cash}  "
+            f"buying_power=${snap.buying_power}  status={snap.status}  "
+            f"paper={snap.paper}"
+        )
+        if not positions:
+            typer.echo("# no open positions")
+        else:
+            typer.echo(f"# {len(positions)} open positions:")
+            total_pnl = _Decimal("0")
+            total_market = _Decimal("0")
+            for p in positions:
+                raw = raw_by_sym.get(p.symbol, {})
+                avg_entry = _Decimal(str(raw.get("avg_entry_price", "0")))
+                market_value = _Decimal(str(raw.get("market_value", "0")))
+                upl = _Decimal(str(raw.get("unrealized_pl", "0")))
+                upl_pc = _Decimal(str(raw.get("unrealized_plpc", "0")))
+                total_pnl += upl
+                total_market += market_value
+                typer.echo(
+                    f"  {p.symbol:<6} qty={p.quantity:<6}  "
+                    f"avg=${avg_entry}  last=${p.last_price}  "
+                    f"market=${market_value}  uPnL=${upl} ({upl_pc:.2%})"
+                )
+            typer.echo(f"# total_market=${total_market}  total_unrealized_pnl=${total_pnl}")
+
+        if json_out:
+            from pathlib import Path as _Path
+
+            payload = {
+                "account": {
+                    "equity": str(snap.equity),
+                    "cash": str(snap.cash),
+                    "buying_power": str(snap.buying_power),
+                    "status": snap.status,
+                    "paper": snap.paper,
+                },
+                "positions": [
+                    {
+                        "symbol": p.symbol,
+                        "quantity": str(p.quantity),
+                        "last_price": str(p.last_price),
+                        "raw": raw_by_sym.get(p.symbol, {}),
+                    }
+                    for p in positions
+                ],
+            }
+            _Path(json_out).write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+            typer.echo(f"# JSON written to {json_out}")
+
+    _run(_go())
+
+
 @paper_app.command("now")
 def paper_now(
     signal_kind: Annotated[str, typer.Option(help="momentum | low_vol | mean_reversion")] = "momentum",
