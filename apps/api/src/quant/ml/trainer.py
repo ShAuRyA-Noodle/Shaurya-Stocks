@@ -385,6 +385,38 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
             "per_class": _per_class_prf(oof_y_enc, oof_pred_enc),
         }
 
+        # ---------- probability calibration (isotonic, fit on OOF) ----------
+        # Tree ensembles produce miscalibrated probabilities by default.
+        # Calibrators fit on OOF predictions only — never on training data —
+        # so the purged-K-fold leakage protections still hold.
+        from quant.ml.calibration import (
+            apply_calibrators,
+            expected_calibration_error,
+            fit_isotonic_per_class,
+        )
+
+        ece_raw = expected_calibration_error(oof_p, oof_y_enc)
+        calibrators = fit_isotonic_per_class(oof_p, oof_y_enc)
+        oof_p_calibrated = apply_calibrators(oof_p, calibrators)
+        ece_cal = expected_calibration_error(oof_p_calibrated, oof_y_enc)
+        agg["oof_calibration"] = {
+            "ece_raw_macro": ece_raw[-1],
+            "ece_calibrated_macro": ece_cal[-1],
+            "ece_raw_per_class": {int(k): float(v) for k, v in ece_raw.items() if k >= 0},
+            "ece_calibrated_per_class": {int(k): float(v) for k, v in ece_cal.items() if k >= 0},
+            "oof_logloss_calibrated": float(
+                log_loss(
+                    oof_y_enc,
+                    oof_p_calibrated,
+                    labels=list(range(len(_CLASSES))),
+                )
+            ),
+        }
+        # Project calibrated OOF rows back into the full-shape array so the
+        # CSV writer can include both columns side-by-side.
+        oof_proba_calibrated = np.full_like(oof_proba, np.nan)
+        oof_proba_calibrated[oof_mask] = oof_p_calibrated
+
         mlflow.log_metrics(
             {
                 "oof_logloss": agg["oof_logloss"],
@@ -392,6 +424,9 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
                 "oof_macro_auc_ovr": (
                     agg["oof_macro_auc_ovr"] if not np.isnan(agg["oof_macro_auc_ovr"]) else 0.0
                 ),
+                "oof_ece_raw_macro": agg["oof_calibration"]["ece_raw_macro"],
+                "oof_ece_calibrated_macro": agg["oof_calibration"]["ece_calibrated_macro"],
+                "oof_logloss_calibrated": agg["oof_calibration"]["oof_logloss_calibrated"],
                 "cv_logloss_mean": float(np.mean([m["val_logloss"] for m in fold_metrics])),
                 "cv_balanced_accuracy_mean": float(
                     np.mean([m["val_balanced_accuracy"] for m in fold_metrics])
@@ -426,6 +461,7 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
             cfg=cfg,
             meta=meta,
             oof_proba=oof_proba,
+            oof_proba_calibrated=oof_proba_calibrated,
             oof_mask=oof_mask,
             feature_names=feature_names,
             feature_importance_gain=feature_importance_gain,
@@ -448,6 +484,7 @@ def _write_artifacts(
     cfg: TrainConfig,
     meta: pl.DataFrame,
     oof_proba: np.ndarray,
+    oof_proba_calibrated: np.ndarray,
     oof_mask: np.ndarray,
     feature_names: list[str],
     feature_importance_gain: np.ndarray | None,
@@ -464,6 +501,9 @@ def _write_artifacts(
         pl.Series("prob_neg1", oof_proba[:, 0]),
         pl.Series("prob_zero", oof_proba[:, 1]),
         pl.Series("prob_pos1", oof_proba[:, 2]),
+        pl.Series("prob_neg1_calibrated", oof_proba_calibrated[:, 0]),
+        pl.Series("prob_zero_calibrated", oof_proba_calibrated[:, 1]),
+        pl.Series("prob_pos1_calibrated", oof_proba_calibrated[:, 2]),
         pl.Series("in_oof", oof_mask),
     )
     pred_class = np.full(oof_proba.shape[0], np.nan, dtype=np.float64)
