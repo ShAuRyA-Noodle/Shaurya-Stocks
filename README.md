@@ -1,96 +1,130 @@
-# Quant Signal Platform
+# Quant Research Platform
 
-Production-grade, real-data ML trading platform. No mocks, no fake numbers, no synthetic data — every value shown to a user is sourced from a real market feed and backed by a reproducible model run.
+Real-data, reproducible quantitative research infrastructure. Walk-forward backtests on real S&P 500 daily closes, gradient-boosted-tree ML, point-in-time membership reconstruction, Deflated Sharpe, Probability of Backtest Overfitting. Every published number ships with a reproducibility manifest.
 
-## What this is
+This is **research infrastructure**, not a fund. It does not place trades, does not forecast tomorrow's prices, and does not promise returns. See [TRUST.md](TRUST.md) for the credibility contract and what this repo refuses to claim.
 
-An end-to-end stack that:
+## Headline numbers
 
-1. **Ingests** real OHLCV, fundamentals, news, macro, and alternative data from 11 integrated providers (Polygon, Alpaca, FRED, Finnhub, Tiingo, Marketaux, NewsAPI, FMP, Groq LLM, Nasdaq Data Link, Alpha Vantage).
-2. **Engineers** features across price, momentum, mean-reversion, volume, microstructure, cross-sectional rank, macro, and LLM-scored news sentiment — leakage-free and walk-forward safe.
-3. **Trains** a calibrated LightGBM ensemble (per-symbol time-series + cross-sectional ranker + HMM regime + stacked meta-learner) tracked in MLflow with purged K-fold CV.
-4. **Backtests** event-driven with realistic costs, slippage, borrow, point-in-time universe, and against SPY / 60-40 / equal-weight benchmarks.
-5. **Executes** through a broker-agnostic adapter (Alpaca paper → Alpaca live → IBKR later) with pre-trade risk checks, order state machine, and reconciliation.
-6. **Streams** live quotes via WebSocket into Redis → signal workers → SSE to the frontend.
-7. **Serves** a real-time Next.js dashboard with live P&L, SHAP explanations, backtest studio, model monitor, and audit log.
+All real, all reproducible. Run the demos in [REPRODUCE.md](REPRODUCE.md) to verify byte-for-byte.
 
-## Monorepo layout
+| Run | Universe | Sharpe | DSR P | AnnRet | Max DD | Notes |
+|---|---|---:|---:|---:|---:|---|
+| `sp500_momentum_126`     | survivors-only (505) | 1.725 | 0.998 | 22.48% | 8.4%  | Headline momentum baseline |
+| `sp500_momentum_126_pit` | point-in-time S&P 500 | 1.112 | 0.927 | 14.74% | 10.0% | Same strategy, joined-after bias removed |
+| `sp500_ml_predictions_v1`| 100-symbol training subset | 1.408 | 1.000 | 16.06% | 8.0%  | LightGBM signal, calibrated probs |
+| `sp500_momentum_sweep`   | 13 configs, raw universe | — | — | — | —    | **PBO = 0.557** (cross-config selection bias) |
+| `sp500_momentum_sweep_pit` | 13 configs, PIT universe | — | — | — | —    | **PBO = 0.629** (selection bias under PIT) |
 
-```
-.
-├── apps/
-│   ├── api/             # FastAPI backend (Python 3.12)
-│   ├── web/             # Next.js 16 frontend (React 19)
-│   └── worker/          # Prefect flows (ingest, features, inference, EOD)
-├── packages/
-│   └── schemas/         # Shared Pydantic + Zod contracts
-├── data/
-│   ├── raw/             # Raw provider dumps (gitignored)
-│   ├── processed/       # Parquet feature stores
-│   └── legacy/          # Pre-rewrite artifacts for reference
-├── infra/
-│   ├── postgres/        # DB init + migrations
-│   ├── grafana/         # Dashboards
-│   └── mlflow/          # MLflow server config
-├── scripts/             # Backfill, seed, ops
-└── docs/                # Architecture, runbooks, model cards
-```
+The honest reading: the headline 1.725 Sharpe inherits ~0.6 units of survivorship bias. The same strategy on a point-in-time universe is 1.112. The cross-config sweep PBO is borderline overfit. None of these numbers are alpha; all of them are honest.
+
+## What's built
+
+- **Walk-forward backtest engine** (`quant.backtest.engine`) — train 252 / test 21 days, equal-weight top-K, bps cost model, no shorting.
+- **Multi-strategy signals** — `MomentumSignal`, `LowVolSignal`, `MeanReversionSignal`, `MLPredictionsSignal`. The ML signal replays a trained LightGBM model's OOF predictions through the same engine.
+- **LightGBM trainer** (`quant.ml.trainer`) — triple-barrier labels (López de Prado AFML ch. 3), purged K-fold CV with embargo (AFML ch. 7), MLflow-tracked. One model, gradient-boosted decision trees, 26 features, 3-class output.
+- **Probability calibration** (`quant.ml.calibration`) — isotonic per-class, ECE diagnostic raw + calibrated. Real macro ECE 0.0098 → 0.0056 on the demo run.
+- **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) — `quant.backtest.statistics.deflated_sharpe_ratio`.
+- **Probability of Backtest Overfitting via CSCV** (López de Prado 2016) — `quant.backtest.statistics.probability_of_backtest_overfitting`.
+- **Point-in-time S&P 500 membership** (`quant.universe.point_in_time`) — Wikipedia changes table → reverse-walk reconstruction → `members_as_of(date)`. Free, accurate from ~2000.
+- **Universe filter wired into walk_forward** — backtest engine honors a `UniverseFilter` callable; `universe: sp500_pit` in any config enforces point-in-time at every rebalance.
+- **Multi-config sweep** (`quant backtest sweep`) — runs N configs, computes cross-config PBO via CSCV.
+- **Reproducibility manifest** (`quant.backtest.reproducibility`) — `code_sha + config_hash + data_fingerprint + python_version + package_versions + created_at`. House rule: no manifest, no publish.
+- **FastAPI endpoints** — `/api/v1/backtests`, `/{name}`, `/{name}/equity`, `/{name}/manifest`, `/{name}/config`. Read-only, path-traversal hardened.
+- **Web `/results` page** — Next.js 16, GSAP/Lenis motion, real numbers from on-disk artifacts (no runtime fetch). Renders KPI grid, PBO panel, 3-way strategy comparison, brutal disclaimer, equity curve, click-to-copy manifest, link to TRUST.md/REPRODUCE.md.
+- **Paper-trading scaffold** (`quant.execution.paper_session` + `quant paper plan`) — broker-agnostic order computation, idempotent client_order_ids, sells-before-buys, JSON plan output. No live submission yet.
+- **CI** — ruff, mypy --strict, pytest, eslint, tsc, next build, docker build (api + web), and a no-fake-data regex guard that fails the build on `Math.random` / `faker.` / `synthetic_data` / `mock_data` / etc. in production source paths.
+
+## What's NOT built
+
+Brutally:
+
+- No live paper trading. `quant.execution.paper_session` computes orders; the daily worker that calls it on a schedule is unbuilt and needs an Alpaca paper API key.
+- No public deploy. Locally-runnable; nothing is on the open internet at a domain.
+- No live PnL track record. Backtest numbers only.
+- No user accounts surfaced. Auth scaffolding exists; no signup UI.
+- No mobile app, no native iOS/Android.
+- No multi-asset (US equities only). No tick data.
+- The "exited-and-removed-from-data" piece of survivorship bias is unfixed — kills the joined-after part for free via Wikipedia, but closing the rest needs Polygon Stocks / Sharadar / Norgate ($50–200/mo).
 
 ## Quickstart
 
 ```bash
-# 1. Copy env template and fill in keys
-cp .env.example .env.local
-# edit .env.local with your API keys
+# 1. Get the source data (Kaggle S&P 500 5y, ~28MB)
+#    Place at: data/legacy/all_stocks_5yr.csv
 
-# 2. Bring up the full stack (postgres+timescale, redis, minio, mlflow, api, web)
-make up
+# 2. Set up the API venv
+cd apps/api
+uv pip install --system -e ".[dev]"        # or: pip install -e ".[dev]"
 
-# 3. Run migrations
-make migrate
+# 3. Run the demo backtest
+.venv/bin/python examples/backtest/prepare_sp500_5yr.py
+.venv/bin/python -m quant.cli backtest run examples/backtest/sp500_momentum.yaml
+# → Sharpe=1.725  DSR P=0.998  DD=8.4%  AnnRet=22.48%
 
-# 4. Backfill 10 years of OHLCV for S&P 500 + NASDAQ 100
-make backfill
+# 4. Run the multi-config sweep
+.venv/bin/python -m quant.cli backtest sweep examples/backtest/sp500_momentum_sweep.yaml
+# → PBO=0.557  best mom_126_top10 Sharpe=1.753
 
-# 5. Train models
-make train
+# 5. Train a real LightGBM model end-to-end
+MLFLOW_TRACKING_URI=file:///tmp/mlruns \
+  .venv/bin/python -m quant.cli ml train examples/ml/sp500_lightgbm.yaml
+# → logloss=0.9817  bal_acc=0.3643  macro_auc_ovr=0.6213
 
-# 6. Open the dashboard
-open http://localhost:3000
+# 6. See what the model would buy on a given date
+.venv/bin/python -m quant.cli paper plan examples/backtest/sp500_momentum.yaml \
+  --as-of 2018-01-31 --portfolio-value 100000
+# → 25 buy orders (NFLX, NVDA, AMZN, BA, ABBV, ...)
+
+# 7. Reconstruct point-in-time S&P 500 membership for any date
+.venv/bin/python -m quant.cli universe point-in-time --as-of 2014-01-02
+# → 505 symbols (vs 503 today) — free, Wikipedia-sourced
+
+# 8. Run the web app
+cd ../web
+npm ci && npm run build && npm run start
+# → http://localhost:3000/results
 ```
 
-## Stack
+Full reproducibility steps (recompute every manifest field, verify byte-exactness): see [REPRODUCE.md](REPRODUCE.md).
 
-| Layer | Tech |
-|---|---|
-| Backend | FastAPI, SQLAlchemy 2, Pydantic v2, Alembic, Polars, LightGBM, SHAP, MLflow, Prefect |
-| DB | Postgres 16 + TimescaleDB 2.x (hypertables for OHLCV/features/signals) |
-| Cache/Queue/Stream | Redis 7 (streams, pubsub, rate limit) |
-| Object store | MinIO (S3-compatible) for model artifacts + reports |
-| Frontend | Next.js 16, React 19, Tailwind 4, Radix UI, TanStack Query, Zustand, Recharts |
-| Auth | JWT + bcrypt + httpOnly cookies, role-based (viewer/trader/admin) |
-| Observability | Structured logs (loguru + pino), Prometheus, Grafana, Sentry |
-| CI | GitHub Actions (ruff, mypy, pytest, eslint, tsc, docker build) |
+## Repository layout
 
-## Decision log
+```
+apps/
+  api/                    # FastAPI + Python 3.12
+    src/quant/
+      backtest/           # walk_forward, statistics, sweep, runner, signals, universe_filter
+      ml/                 # trainer, calibration, config
+      universe/           # constituents, point_in_time
+      execution/          # broker, paper_session
+      labels/             # triple_barrier
+      cv/                 # purged_kfold
+      features/           # technical features
+      api/v1/             # FastAPI routers (auth, backtests, market, signals, admin)
+    examples/
+      backtest/           # YAML configs + tracked artifact bundles
+      ml/                 # YAML configs + tracked artifact bundles
+    tests/                # ruff + mypy strict + 100+ unit + integration tests
+apps/
+  web/                    # Next.js 16 + React 19 + Tailwind v4
+    app/
+      page.tsx            # marketing landing
+      results/page.tsx    # /results — renders real backtest from artifact JSON
+    components/oracle/    # KpiGrid, EquityCurve, HonestyBlock, ReproBlock, TrustFootnote
+    lib/oracle/           # build-time artifact loader
+    scripts/              # sync-oracle-artifacts.mjs (prebuild)
+data/legacy/              # source CSV (gitignored, regenerable)
+TRUST.md                  # credibility contract
+REPRODUCE.md              # cold-start reproduction guide
+FINAL_REPORT.md           # honest gap audit
+```
 
-See [docs/decisions/](docs/decisions/) for ADRs. Summary:
+## Math sources
 
-- **Universe**: S&P 500 + NASDAQ 100 (~550 unique tickers), point-in-time membership.
-- **Hosting**: Docker Compose local-first; cloud path pre-wired for Fly.io + Vercel + Neon + Upstash.
-- **Paper vs live**: Broker abstraction from day one. Free users = read-only. Pro = paper with their own Alpaca keys. Premium = live (KYC-gated feature flag).
-- **DB**: Postgres + TimescaleDB (single DB for both relational and time-series).
-- **Model tracking**: MLflow with Postgres metadata + MinIO artifacts. Every signal carries a `model_run_id` for byte-for-byte replay.
+- López de Prado, *Advances in Financial Machine Learning* (Wiley 2018) — chapters 3 (triple-barrier labels), 7 (purged K-fold + embargo), 12 (PBO via CSCV).
+- Bailey & López de Prado, *The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality* (Journal of Portfolio Management, 2014).
 
-## Anti-fake guarantees (enforced in CI)
+## License
 
-- No hardcoded prices, returns, or confidences anywhere in the frontend. A CI check greps for suspicious literals in `apps/web/components/`.
-- No `Math.random()` in production code paths. Allowed only in `*.test.tsx`.
-- Every feature must declare its `point_in_time_safe: bool` in metadata. CI fails if any feature reads future data.
-- Every backtest must output a reproducibility manifest (code hash, data hash, model hash). CI fails if missing.
-
-## Status
-
-**Sprint 1 — Foundation** (in progress)
-
-See [CHANGELOG.md](CHANGELOG.md) for sprint-by-sprint progress.
+This is research infrastructure. It is not investment advice. Past backtest performance does not predict future returns. The platform does not place trades on your behalf. See [TRUST.md](TRUST.md) §4 for what this platform does not — and will not — claim.
