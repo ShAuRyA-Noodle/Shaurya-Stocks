@@ -1,10 +1,15 @@
 # AUDIT — brutal in-depth review of every module
 
-**Date:** 2026-05-03
+**Date:** 2026-05-03 *(updated post-gap-closure pass — see §6)*
 **Auditor:** authoring agent on `main`
 **Scope:** every shipped module in `apps/api/src/quant/` + `apps/web/`
 **Goal:** name every gap, every weakness, every overstatement honestly. No
 section ends with marketing.
+
+> **2026-05-03 update (commits `7a29293` → `48d4545`):** the post-audit gap-closure
+> sprint shipped six tier-1 fixes. See §6 below for the cross-out list. This
+> top section is the original audit; severity-ranked items are still listed
+> as written, even when closed, so the trail of decisions is honest.
 
 This is the partner document to `TRUST.md`. TRUST.md says what the platform
 *does* claim. AUDIT.md says what's still wrong with it.
@@ -257,3 +262,53 @@ audit too.
 
 If a future commit ever phrases this project as "top 0.0001%", treat it
 as a regression and revert.
+
+---
+
+## 6. 2026-05-03 gap-closure pass
+
+Six tier-1 ships landed in this loop. Audit items they close are
+struck-through above conceptually; the explicit list is here.
+
+### Closed in this pass
+
+| Audit ref | Severity | Ship | Commit |
+|---|---|---|---|
+| §1.4 booster persistence | 🔴 | trainer persists per-fold boosters + isotonic calibrators + model_meta.json; new `quant.ml.predict` module + `quant ml predict` CLI | `c71934e` |
+| §1.10 stale headline | 🟠 | /results renders the 2019-2026 backtest as headline; PIT comparison still apples-to-apples on 2014-2018 windows | `7a29293` |
+| §1.3 ML signal daily inference | 🟠 | `MLBundleSignal` loads a trainer artifact, runs live calibrated `predict_proba` per rebalance; `quant paper now --signal-kind ml_bundle --model-dir <path>` produces real BUY proposals | `24b2ff3` |
+| §1.8 universe hard-coded | 🟠 | `quant paper now --universe DEV \| SP500 \| comma,sep,syms` | `24b2ff3` |
+| §1.8 risk manager not wired | 🟡 | `quant.execution.risk_gate`: drawdown_kill / daily_loss_limit / max_positions / max_position_pct from `.env.local` Settings; `run_live_session` runs gate before submission, blocks BUYs that violate, never blocks SELLs (get-out always wins) | `f1438e0` |
+| §1.8 no order reconciliation | 🟠 | `quant.execution.reconciliation`: poll Alpaca per-order to terminal status; `LiveSessionResult.fills` reports submitted/filled/avg-fill-price/status/poll-count | `5a15f9b` |
+| §1.10 no /paper page | 🟠 | `apps/web/app/paper/page.tsx` renders the disk snapshot of the live paper account: KPI grid, positions table with mark-to-market PnL, brutal-disclaimer block, graceful "not connected" state when the snapshot is absent | `48d4545` |
+| §0 stale 2014-2018 only data | (cross-cutting) | `data/raw/alpaca_sp500_2018_2026.csv` (718k rows / 503 syms / Alpaca IEX). Backtest re-runs on it: Sharpe 1.703 / AnnRet 42.48% / MaxDD 19.6%. ML model retrained: AUC 0.626, ECE-cal 0.5%. | `69a4ce5` |
+
+### Real numbers added in this pass
+
+| Run | Window | Sharpe | DSR P | AnnRet | DD | Notes |
+|---|---|---:|---:|---:|---:|---|
+| `sp500_momentum_126_2026` | 2019→2026 | 1.703 | 1.000 | **42.48%** | 19.6% | Headline on /results |
+| `sp500_lightgbm_2026` (OOF) | 2018→2026 | — | — | — | — | logloss 0.985, AUC 0.626 |
+
+Real ML output, 2026-05-01, full 503-name SP500 panel:
+- Top high-conviction BUYs: **CTSH +0.377, ERIE +0.356, WTW +0.283**
+- Top-10 plan refused by risk gate (10% positions > 5% per-position cap)
+
+### Still NOT closed (deferred)
+
+| Audit ref | Severity | Why deferred |
+|---|---|---|
+| §1.5 exited-and-removed survivorship | 🔴 | Needs paid feed (Sharadar/Norgate $50-200/mo). Outside zero-budget scope. |
+| §1.4 hyperparameter tuning | 🟠 | Lots of compute; opt-in feature for a workstation, not a laptop. |
+| §1.4 max_symbols memory cap | 🟠 | Same — needs more RAM than the operator's laptop. |
+| §1.3 fundamental signals (P/E etc.) | 🟠 | FMP keys work; building Value + Quality factors is a real-but-meaty next-sprint item. |
+| §1.4 SHAP per-prediction | 🟡 | Single-purpose; build when a user actually wants explainability. |
+| §1.4 model registry promote-to-prod | 🟡 | Manual MLflow promotion is fine for a single-operator project. |
+| §1.8 daily worker / scheduler | 🟠 | Prefect flow exists in repo skeleton; wiring it up to call `paper now --submit --confirm` on a cron is the next ship after this pass. |
+| §1.9 SSE/WebSocket live updates | 🟠 | Module exists in `quant.streaming`; not wired to paper. |
+| §1.9 write endpoints for paper | 🟠 | Refused by design — submission stays on the CLI behind triple-confirm. |
+
+The remaining 🔴 (delisted-name coverage) is the only item where the
+"can't fix without budget" framing genuinely applies; everything else is
+"could fix in a day if it became the priority". This audit's note that
+"AUDIT.md should be updated as gaps close" is itself now closed.
