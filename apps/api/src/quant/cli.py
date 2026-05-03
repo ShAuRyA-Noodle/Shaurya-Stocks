@@ -279,6 +279,84 @@ def ml_train(
     typer.echo(f"Artifacts:  {report['artifacts']['dir']}")
 
 
+@ml_app.command("predict")
+def ml_predict(
+    model_dir: Annotated[str, typer.Argument(help="Path to trainer artifact bundle")],
+    prices_csv: Annotated[str, typer.Argument(help="Prices CSV (date, symbol, OHLCV)")],
+    as_of: Annotated[str, typer.Option(help="YYYY-MM-DD; defaults to most recent date in the CSV")] = "",
+    symbols: Annotated[str, typer.Option(help="Comma-separated symbols (default = all in panel)")] = "",
+    threshold: Annotated[float, typer.Option(help="|score| threshold for BUY/SELL (else HOLD)")] = 0.10,
+    json_out: Annotated[str, typer.Option(help="Optional JSON output path")] = "",
+) -> None:
+    """
+    Load a trained model + emit BUY/HOLD/SELL recommendations per symbol.
+
+    The model must have been trained with the current `quant.ml.trainer`
+    (which persists per-fold boosters + isotonic calibrators + feature meta
+    inside the artifact bundle).
+    """
+    from datetime import date as _date
+
+    import polars as pl
+
+    from quant.ml.predict import load_bundle, recommend
+
+    _setup_logging()
+    bundle = load_bundle(model_dir)
+    df = pl.read_csv(prices_csv, try_parse_dates=True).with_columns(pl.col("date").cast(pl.Date))
+    target_date = _date.fromisoformat(as_of) if as_of else df["date"].max()
+    if not isinstance(target_date, _date):
+        raise typer.BadParameter(f"could not resolve as_of from CSV: {target_date!r}")
+
+    sym_list: list[str] | None = None
+    if symbols:
+        sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+
+    recs = recommend(
+        bundle,
+        df,
+        as_of=target_date,
+        symbols=sym_list,
+        threshold=threshold,
+    )
+
+    typer.echo(f"# {len(recs)} recommendations as of {target_date} (threshold={threshold:.2f}):")
+    typer.echo(f"  {'sym':<6} {'action':<6} {'conf':<6} {'P(-)':<6} {'P(0)':<6} {'P(+)':<6} {'score':<7}")
+    for r in sorted(recs, key=lambda r: -r.score):
+        typer.echo(
+            f"  {r.symbol:<6} {r.action:<6} {r.confidence:<6} "
+            f"{r.prob_neg1:.3f}  {r.prob_zero:.3f}  {r.prob_pos1:.3f}  {r.score:+.3f}"
+        )
+    n_buy = sum(1 for r in recs if r.action == "BUY")
+    n_sell = sum(1 for r in recs if r.action == "SELL")
+    n_hold = sum(1 for r in recs if r.action == "HOLD")
+    typer.echo(f"# {n_buy} BUY, {n_sell} SELL, {n_hold} HOLD")
+
+    if json_out:
+        from pathlib import Path as _Path
+
+        _Path(json_out).write_text(
+            json.dumps(
+                [
+                    {
+                        "symbol": r.symbol,
+                        "as_of": r.as_of.isoformat(),
+                        "action": r.action,
+                        "confidence": r.confidence,
+                        "score": r.score,
+                        "prob_neg1": r.prob_neg1,
+                        "prob_zero": r.prob_zero,
+                        "prob_pos1": r.prob_pos1,
+                    }
+                    for r in recs
+                ],
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        typer.echo(f"# JSON written to {json_out}")
+
+
 # ---------------------------------------------------------------
 # paper — plan paper-trading orders from a signal config
 # ---------------------------------------------------------------

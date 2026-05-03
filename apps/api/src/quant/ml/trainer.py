@@ -323,6 +323,7 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
             }
         )
 
+        boosters: list[lgb.Booster] = []
         for fold, (tr_idx, va_idx) in enumerate(cv.split(X)):
             if tr_idx.size == 0 or va_idx.size == 0:
                 log.warning("fold %d empty after purging — skipping", fold)
@@ -336,6 +337,7 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
                 feature_names=feature_names,
                 cfg=cfg,
             )
+            boosters.append(booster)
             oof_proba[va_idx] = val_proba
 
             val_pred_enc = np.argmax(val_proba, axis=1)
@@ -466,6 +468,8 @@ def train(cfg: TrainConfig) -> dict[str, Any]:
             feature_names=feature_names,
             feature_importance_gain=feature_importance_gain,
             report=report,
+            boosters=boosters,
+            calibrators=calibrators,
         )
         report["artifacts"] = artifact_paths
 
@@ -489,9 +493,43 @@ def _write_artifacts(
     feature_names: list[str],
     feature_importance_gain: np.ndarray | None,
     report: dict[str, Any],
+    boosters: list[lgb.Booster],
+    calibrators: list[Any],
 ) -> dict[str, str]:
+    import pickle as _pickle
+
     out_dir = Path(cfg.output_dir) / cfg.name
     out_dir.mkdir(parents=True, exist_ok=True)
+    boosters_dir = out_dir / "boosters"
+    boosters_dir.mkdir(exist_ok=True)
+
+    # Persist each fold's booster as LightGBM's portable text format.
+    # `quant ml predict` reloads them and averages predict_proba across folds.
+    for fold_idx, booster in enumerate(boosters):
+        booster.save_model(
+            str(boosters_dir / f"fold_{fold_idx}.txt"),
+            num_iteration=booster.best_iteration,
+        )
+
+    # Persist isotonic calibrators via pickle. They have no portable format
+    # equivalent; pickling sklearn estimators is the standard approach.
+    with (out_dir / "calibrators.pkl").open("wb") as fh:
+        _pickle.dump(calibrators, fh)
+
+    # Persist feature_names + class space so predict-time can rebuild the
+    # exact column order without re-running the trainer.
+    (out_dir / "model_meta.json").write_text(
+        json.dumps(
+            {
+                "feature_names": feature_names,
+                "classes": list(_CLASSES),
+                "feature_set_version": FEATURE_SET_VERSION,
+                "n_boosters": len(boosters),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     # ---------- OOF predictions CSV ----------
     # `prob_-1`, `prob_0`, `prob_+1` columns + the picked class. NaNs (samples
