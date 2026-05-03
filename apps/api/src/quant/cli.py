@@ -279,6 +279,47 @@ def ml_train(
     typer.echo(f"Artifacts:  {report['artifacts']['dir']}")
 
 
+@ml_app.command("tune")
+def ml_tune(
+    config: Annotated[str, typer.Argument(help="Path to a YAML or JSON train config (defaults inherited)")],
+    n_trials: Annotated[int, typer.Option(help="Optuna trials; ~30s each on M2 air")] = 30,
+    seed: Annotated[int, typer.Option(help="TPE sampler seed")] = 42,
+    json_out: Annotated[str, typer.Option(help="Path to write the best-params JSON")] = "",
+) -> None:
+    """
+    Search LightGBM hyperparameters with Optuna TPE; minimize OOF log-loss.
+    Prints best params + history; writes JSON report when --json-out is set.
+    """
+    from quant.ml import load_config
+    from quant.ml.tune import tune
+
+    _setup_logging()
+    base = load_config(config)
+    typer.echo(f"Tuning '{base.name}' — {n_trials} TPE trials")
+    rep = tune(base, n_trials=n_trials, seed=seed)
+    typer.echo(f"# best logloss = {rep.best_value:.4f} (over {rep.n_trials} trials)")
+    typer.echo("# best params:")
+    for k, v in sorted(rep.best_params.items()):
+        typer.echo(f"  {k:<20} {v}")
+    if json_out:
+        from pathlib import Path as _Path
+
+        _Path(json_out).write_text(
+            json.dumps(
+                {
+                    "n_trials": rep.n_trials,
+                    "best_value": rep.best_value,
+                    "best_params": rep.best_params,
+                    "history": rep.history,
+                },
+                indent=2,
+                default=str,
+            ),
+            encoding="utf-8",
+        )
+        typer.echo(f"# JSON written to {json_out}")
+
+
 @ml_app.command("predict")
 def ml_predict(
     model_dir: Annotated[str, typer.Argument(help="Path to trainer artifact bundle")],
