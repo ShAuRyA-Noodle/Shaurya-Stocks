@@ -107,17 +107,27 @@ export function HorizontalScroll() {
               key={t.title}
               className="group relative shrink-0 w-[78vw] md:w-[58vw] lg:w-[42vw] h-[60vh] rounded-3xl border border-border/60 bg-card/40 backdrop-blur-2xl overflow-hidden shadow-[0_0_40px_rgba(25,130,196,0.08)] hover:shadow-[0_0_60px_rgba(25,130,196,0.15)] transition-shadow duration-500"
             >
+              {/* Background image — real card art */}
+              <img
+                src={`/cards/card-${String(i + 1).padStart(2, "0")}.png`}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 w-full h-full object-cover opacity-[0.35] mix-blend-luminosity group-hover:opacity-[0.55] group-hover:scale-[1.04] transition-all duration-700 ease-out"
+              />
+              {/* Tint overlay — keeps text readable, adds palette accent */}
               <div
-                className="absolute inset-0 opacity-[0.18]"
+                className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
                     i % 3 === 0
-                      ? "radial-gradient(circle at 20% 20%, rgba(25,130,196,0.3), transparent 55%)"
+                      ? "linear-gradient(135deg, rgba(3,3,4,0.65) 0%, rgba(25,130,196,0.25) 100%)"
                       : i % 3 === 1
-                        ? "radial-gradient(circle at 80% 80%, rgba(138,201,38,0.3), transparent 55%)"
-                        : "radial-gradient(circle at 50% 20%, rgba(106,76,147,0.3), transparent 55%)",
+                        ? "linear-gradient(135deg, rgba(3,3,4,0.65) 0%, rgba(138,201,38,0.25) 100%)"
+                        : "linear-gradient(135deg, rgba(3,3,4,0.65) 0%, rgba(106,76,147,0.28) 100%)",
                 }}
               />
+              {/* Bottom fade for title legibility */}
+              <div className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none bg-gradient-to-t from-background/85 via-background/40 to-transparent" />
               <div className="relative h-full flex flex-col justify-between p-10">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center">

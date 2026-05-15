@@ -977,5 +977,100 @@ def features_fetch_sentiment(
             )
 
 
+# ---------------------------------------------------------------
+# features catalysts — LLM event-tag extraction
+# ---------------------------------------------------------------
+@features_app.command("fetch-catalysts")
+def features_fetch_catalysts(
+    symbols: Annotated[str, typer.Option(help="Comma-separated symbols, OR 'DEV'")],
+    out: Annotated[str, typer.Argument(help="Output CSV path")],
+    days: Annotated[int, typer.Option(help="News lookback days")] = 2,
+) -> None:
+    """LLM extracts structured catalyst tags from recent news headlines."""
+    from quant.features.catalysts import fetch_and_tag, write_catalysts_csv
+    from quant.universe.constituents import DEV_UNIVERSE as _DEV
+
+    _setup_logging()
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    sym_list = list(_DEV) if symbols.upper() == "DEV" else [
+        s.strip().upper() for s in symbols.split(",") if s.strip()
+    ]
+    if not sym_list:
+        raise typer.BadParameter("--symbols resolved to empty list")
+
+    typer.echo(f"# tagging catalysts for {len(sym_list)} symbols over {days}d")
+    rows = _run(fetch_and_tag(sym_list, days=days))
+    write_catalysts_csv(rows, out)
+    typer.echo(f"# {len(rows)} catalyst rows → {out}")
+    if rows:
+        non_none = [r for r in rows if r["catalyst_type"] != "none"]
+        typer.echo(f"# {len(non_none)} non-trivial catalysts:")
+        for r in non_none[:10]:
+            typer.echo(
+                f"  {r['symbol']:<6} {r['date']}  {r['catalyst_type']:<22} {r['severity']:<6} {r['summary'][:60]}"
+            )
+
+
+# ---------------------------------------------------------------
+# features regime — daily macro regime classification
+# ---------------------------------------------------------------
+@features_app.command("classify-regime")
+def features_classify_regime(
+    out: Annotated[str, typer.Argument(help="Output JSON path")] = "regime.json",
+) -> None:
+    """One LLM call: read macro headlines → classify risk_on/risk_off/neutral."""
+    from quant.features.macro_regime import classify_regime, write_regime_json
+
+    _setup_logging()
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    result = _run(classify_regime())
+    write_regime_json(result, out)
+    typer.echo(
+        f"# regime={result['regime']} confidence={result['confidence']:.2f} "
+        f"(n_headlines={result['n_headlines']}, model={result['model']})"
+    )
+    typer.echo(f"# rationale: {result['rationale']}")
+    typer.echo(f"# wrote {out}")
+
+
+# ---------------------------------------------------------------
+# features briefing — daily plain-english summary for /paper page
+# ---------------------------------------------------------------
+@features_app.command("briefing")
+def features_briefing(
+    out: Annotated[str, typer.Argument(help="Output JSON path")] = "briefing.json",
+    picks_json: Annotated[str, typer.Option(help="Path to top-picks JSON")] = "",
+    regime_json: Annotated[str, typer.Option(help="Path to regime JSON")] = "",
+) -> None:
+    """Generate daily 3-4 sentence briefing for the operator."""
+    from datetime import date as _date
+
+    from quant.features.briefing import write_briefing, write_briefing_json
+
+    _setup_logging()
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    picks: list[dict[str, Any]] = []
+    if picks_json:
+        from pathlib import Path as _P
+        picks = json.loads(_P(picks_json).read_text(encoding="utf-8"))
+
+    regime: dict[str, Any] | None = None
+    if regime_json:
+        from pathlib import Path as _P
+        regime = json.loads(_P(regime_json).read_text(encoding="utf-8"))
+
+    result = _run(write_briefing(as_of=_date.today(), top_picks=picks, regime=regime))
+    write_briefing_json(result, out)
+    typer.echo(f"# HEADLINE: {result['headline']}")
+    typer.echo(f"# {result['narrative']}")
+    typer.echo(f"# wrote {out} (model={result['model']})")
+
+
 if __name__ == "__main__":
     app()

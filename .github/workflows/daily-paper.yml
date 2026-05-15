@@ -1,37 +1,39 @@
-name: Daily paper-trading rebalance
+name: Daily paper-trading rebalance (5-layer LLM pipeline)
 
 # Runs every weekday at 21:30 UTC (~5:30 PM ET, after US market close).
 #
-# What this job does:
-#   1. Always: snapshot the Alpaca paper account state → paper-status.json
-#   2. Always: append equity to paper-history.csv
-#   3. If TRADING_ENABLED=true: compute momentum signal → propose orders → submit
-#   4. Commit artifacts back to repo → Vercel rebuilds /paper page
+# 5-LAYER WORKFLOW:
+#   Layer 1: Sentiment scoring   (DeepSeek V4 Flash via OpenRouter)
+#   Layer 2: Catalyst tagging    (Kimi K2.5 → Flash → Pro → K2.6 fallback)
+#   Layer 3: Macro regime        (Kimi K2.5, 1 call/day)
+#   Layer 4: Sanity check        (Kimi K2.5, on top-25 ML candidates)
+#   Layer 5: Daily briefing      (Kimi K2.5, plain-english summary)
 #
-# Required secrets (Settings → Secrets and variables → Actions):
+# Then: snapshot Alpaca paper account → optional rebalance → commit artifacts.
+# Vercel auto-rebuilds frontend on push.
+#
+# Required secrets:
 #   ALPACA_API_KEY_ID, ALPACA_API_SECRET_KEY  (paper account)
 #   JWT_SECRET_KEY  (settings validator requires non-empty)
+#   OPENROUTER_API_KEY  (for 5-layer LLM pipeline)
 #
-# Optional secrets (for full provider coverage):
+# Optional secrets (best-effort coverage):
 #   POLYGON_API_KEY, FRED_API_KEY, TIINGO_API_KEY, GROQ_API_KEY,
 #   FINNHUB_API_KEY, MARKETAUX_API_KEY, NEWSAPI_KEY, FMP_API_KEY,
 #   ALPHAVANTAGE_API_KEY, NASDAQ_DATA_LINK_API_KEY
+#   SLACK_WEBHOOK_URL  (order alerts)
 #
-# Optional secrets (for alerting):
-#   SLACK_WEBHOOK_URL  — Slack-compatible webhook for order alerts
-#
-# Repository variables (Settings → Variables → Actions):
-#   TRADING_ENABLED   — set to "true" to actually submit paper orders
-#                       defaults to "false" (plan-only, safe)
+# Repository variables:
+#   TRADING_ENABLED   "true" → submit paper orders; default "false" (plan-only)
+#   UNIVERSE_TIER     "DEV" (20 names) | "TOP50" | "TOP100" (default) | "SP500"
 #
 # Safety gates (ALL required to submit):
-#   ALPACA_PAPER=true  (hardcoded here — never routes to live broker)
+#   ALPACA_PAPER=true  (hardcoded — never routes to live broker)
 #   TRADING_ENABLED=true  (GitHub variable, opt-in)
-#   --confirm flag  (passed explicitly below)
-#   LIVE_TRADING_CONFIRMED is NOT set (paper only)
+#   --confirm flag  (passed explicitly)
+#   LIVE_TRADING_CONFIRMED is NOT set  (paper only)
 #
-# Signal: 126-day momentum, SP500 universe, top-5 equal-weight.
-# No ML model artifacts needed — momentum uses only price data from Alpaca.
+# Cost: ~$2.40 for 3 months of full pipeline at top-100 universe.
 
 on:
   schedule:
@@ -42,8 +44,8 @@ permissions:
   contents: write
 
 jobs:
-  paper-rebalance:
-    name: Snapshot + (optional) rebalance
+  daily-pipeline:
+    name: 5-layer LLM + snapshot + (optional) rebalance
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,10 +69,13 @@ jobs:
       FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
       ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
       NASDAQ_DATA_LINK_API_KEY: ${{ secrets.NASDAQ_DATA_LINK_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       TRADING_ENABLED: ${{ vars.TRADING_ENABLED || 'false' }}
       LIVE_TRADING_CONFIRMED: "false"
+      UNIVERSE_TIER: ${{ vars.UNIVERSE_TIER || 'TOP100' }}
       MLFLOW_TRACKING_URI: file:///tmp/mlruns
+      ARTIFACTS: ../web/.oracle-artifacts
 
     steps:
       - uses: actions/checkout@v4
@@ -88,15 +93,61 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e ".[dev]"
 
+      - name: Prep artifact dir + resolve universe
+        run: |
+          mkdir -p $ARTIFACTS
+          case "$UNIVERSE_TIER" in
+            DEV)    UNI_FLAG="--symbols DEV" ;;
+            TOP50)  UNI_FLAG="--symbols AAPL,MSFT,NVDA,AMZN,GOOGL,META,BRK.B,LLY,AVGO,TSLA,WMT,JPM,V,XOM,UNH,MA,PG,JNJ,HD,COST,ORCL,BAC,NFLX,CVX,KO,ABBV,ADBE,PEP,CRM,MRK,TMO,LIN,ACN,WFC,CSCO,DIS,ABT,MCD,IBM,INTU,AMD,PM,GE,DHR,QCOM,VZ,CAT,TXN,ISRG,GS" ;;
+            TOP100) UNI_FLAG="--symbols AAPL,MSFT,NVDA,AMZN,GOOGL,META,BRK.B,LLY,AVGO,TSLA,WMT,JPM,V,XOM,UNH,MA,PG,JNJ,HD,COST,ORCL,BAC,NFLX,CVX,KO,ABBV,ADBE,PEP,CRM,MRK,TMO,LIN,ACN,WFC,CSCO,DIS,ABT,MCD,IBM,INTU,AMD,PM,GE,DHR,QCOM,VZ,CAT,TXN,ISRG,GS,SPGI,NOW,T,RTX,UBER,AXP,NEE,AMGN,UNP,BLK,HON,LOW,BKNG,SYK,COP,VRTX,SCHW,PFE,TJX,BA,DE,GILD,BSX,PLD,MS,LMT,ELV,MDLZ,REGN,PANW,C,PGR,KKR,ETN,ADP,CB,FI,CI,MMC,ADI,SO,DUK,CVS,SNPS,KLAC,LRCX,APH,ZTS,WM,EQIX,ICE" ;;
+            SP500)  UNI_FLAG="--symbols DEV" ;;  # placeholder — needs sp500.txt
+            *)      UNI_FLAG="--symbols DEV" ;;
+          esac
+          echo "UNI_FLAG=$UNI_FLAG" >> $GITHUB_ENV
+          echo "# Universe tier: $UNIVERSE_TIER"
+
+      # ---- LAYER 3: Macro regime (1 LLM call/day) ----
+      - name: Layer 3 — classify macro regime
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        continue-on-error: true
+        run: |
+          python -m quant.cli features classify-regime $ARTIFACTS/regime.json || \
+            echo "regime classifier failed (non-fatal)"
+
+      # ---- LAYER 1: Sentiment scoring ----
+      - name: Layer 1 — fetch + score sentiment
+        if: ${{ env.MARKETAUX_API_KEY != '' || env.NEWSAPI_KEY != '' }}
+        continue-on-error: true
+        run: |
+          python -m quant.cli features fetch-sentiment \
+            $UNI_FLAG \
+            --days 2 \
+            $ARTIFACTS/sentiment.csv || \
+            echo "sentiment fetch failed (non-fatal)"
+
+      # ---- LAYER 2: Catalyst tagging ----
+      - name: Layer 2 — tag catalysts
+        if: ${{ env.OPENROUTER_API_KEY != '' && (env.MARKETAUX_API_KEY != '' || env.NEWSAPI_KEY != '') }}
+        continue-on-error: true
+        run: |
+          python -m quant.cli features fetch-catalysts \
+            $UNI_FLAG \
+            --days 2 \
+            $ARTIFACTS/catalysts.csv || \
+            echo "catalyst tagger failed (non-fatal)"
+
+      # ---- Snapshot Alpaca paper account ----
       - name: Snapshot paper account
         run: |
-          mkdir -p ../web/.oracle-artifacts
           python -m quant.cli paper status \
-            --json-out ../web/.oracle-artifacts/paper-status.json \
-            --history-csv ../web/.oracle-artifacts/paper-history.csv
+            --json-out $ARTIFACTS/paper-status.json \
+            --history-csv $ARTIFACTS/paper-history.csv
 
+      # ---- LAYER 4 + execution: compute + (optional) submit orders ----
+      # Sanity-checker is wired inside paper now when --sanity-check passed.
       - name: Compute + submit paper orders
         if: vars.TRADING_ENABLED == 'true'
+        continue-on-error: true
         run: |
           echo "TRADING_ENABLED=true — computing and submitting paper orders"
           python -m quant.cli paper now \
@@ -109,6 +160,7 @@ jobs:
 
       - name: Plan-only run (TRADING_ENABLED != true)
         if: vars.TRADING_ENABLED != 'true'
+        continue-on-error: true
         run: |
           echo "TRADING_ENABLED not set — plan-only run (no orders submitted)"
           python -m quant.cli paper now \
@@ -117,16 +169,35 @@ jobs:
             --top-k 5 \
             --universe DEV
 
-      - name: Commit snapshot + history
+      # ---- LAYER 5: Daily briefing (depends on regime.json existing) ----
+      - name: Layer 5 — daily briefing
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        continue-on-error: true
+        run: |
+          REGIME_FLAG=""
+          if [ -f "$ARTIFACTS/regime.json" ]; then
+            REGIME_FLAG="--regime-json $ARTIFACTS/regime.json"
+          fi
+          python -m quant.cli features briefing \
+            $REGIME_FLAG \
+            $ARTIFACTS/briefing.json || \
+            echo "briefing writer failed (non-fatal)"
+
+      # ---- Commit all artifacts ----
+      - name: Commit snapshot + LLM artifacts
         run: |
           cd ../..
           git config user.name "oracle-paper-bot"
           git config user.email "actions@github.com"
           git add apps/web/.oracle-artifacts/paper-status.json \
-                  apps/web/.oracle-artifacts/paper-history.csv || true
+                  apps/web/.oracle-artifacts/paper-history.csv \
+                  apps/web/.oracle-artifacts/sentiment.csv \
+                  apps/web/.oracle-artifacts/catalysts.csv \
+                  apps/web/.oracle-artifacts/regime.json \
+                  apps/web/.oracle-artifacts/briefing.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "paper: daily snapshot $(date -u +%Y-%m-%d)"
+            git commit -m "paper: daily 5-layer pipeline $(date -u +%Y-%m-%d)"
             git push
           fi

@@ -135,22 +135,32 @@ def _article_text(art: dict[str, Any]) -> tuple[str, str | None, date | None]:
 # ------------------------------------------------------------------
 # Scoring
 # ------------------------------------------------------------------
-async def _score_with_groq(
+async def _score_articles(
     articles: list[dict[str, Any]],
     *,
-    sleep_seconds: float = 0.05,
-    max_concurrent: int = 4,
+    sleep_seconds: float = 0.02,
+    max_concurrent: int = 6,
+    provider: str = "openrouter",
 ) -> list[_ScoredArticle]:
     """
-    Score every article via Groq sentiment. Bounded concurrency so we
-    don't blow Groq's free-tier 30 req/min.
-    """
-    from quant.adapters.groq import GroqAdapter
+    Score every article via the configured LLM provider.
 
+    Default provider: openrouter (DeepSeek V4 Flash — $0.112/$0.224 per M tokens,
+    JSON-strict, ~$2 for 3-month SP500 sentiment run).
+
+    Fallback provider: groq (llama-3.1-8b-instant, free tier 30 req/min).
+    """
     sem = asyncio.Semaphore(max_concurrent)
     results: list[_ScoredArticle] = []
 
-    async with GroqAdapter() as g:
+    if provider == "openrouter":
+        from quant.adapters.openrouter import OpenRouterAdapter
+        adapter_cls: type = OpenRouterAdapter
+    else:
+        from quant.adapters.groq import GroqAdapter
+        adapter_cls = GroqAdapter
+
+    async with adapter_cls() as scorer:
 
         async def _one(art: dict[str, Any]) -> None:
             sym = str(art.get("__symbol__", ""))
@@ -159,9 +169,11 @@ async def _score_with_groq(
                 return
             async with sem:
                 try:
-                    res = await g.score_sentiment(headline=title, summary=summary, tickers=[sym])
+                    res = await scorer.score_sentiment(
+                        headline=title, summary=summary, tickers=[sym]
+                    )
                 except Exception as exc:
-                    log.warning("groq score %s failed: %s", sym, exc)
+                    log.warning("%s score %s failed: %s", provider, sym, exc)
                     return
                 await asyncio.sleep(sleep_seconds)
             score = res.get("score") if isinstance(res, dict) else None
@@ -181,6 +193,10 @@ async def _score_with_groq(
         await asyncio.gather(*(_one(a) for a in articles))
 
     return results
+
+
+# Backward-compat alias — old callers use _score_with_groq
+_score_with_groq = _score_articles
 
 
 # ------------------------------------------------------------------
@@ -219,9 +235,15 @@ async def fetch_and_score(
     days: int = 7,
     use_marketaux: bool = True,
     use_newsapi: bool = True,
+    provider: str = "openrouter",
 ) -> list[dict[str, Any]]:
-    """Pull news from configured sources, score each article via Groq,
-    aggregate per (symbol, date). Returns rows ready for CSV."""
+    """Pull news from configured sources, score each article via the LLM provider,
+    aggregate per (symbol, date). Returns rows ready for CSV.
+
+    provider: 'openrouter' (default, DeepSeek V4 Flash) or 'groq' (fallback).
+    """
+    from quant.config import settings
+
     syms = sorted({s.strip().upper() for s in symbols if s and s.strip()})
     if not syms:
         return []
@@ -236,8 +258,13 @@ async def fetch_and_score(
     if not articles:
         return []
 
-    scored = await _score_with_groq(articles)
-    log.info("scored %d articles via Groq", len(scored))
+    # Auto-fallback: if OpenRouter key not configured, use Groq.
+    if provider == "openrouter" and settings.openrouter_api_key is None:
+        log.warning("openrouter_api_key not set — falling back to groq")
+        provider = "groq"
+
+    scored = await _score_articles(articles, provider=provider)
+    log.info("scored %d articles via %s", len(scored), provider)
 
     return _aggregate_per_symbol_day(scored)
 

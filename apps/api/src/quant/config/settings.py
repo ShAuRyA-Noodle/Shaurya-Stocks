@@ -132,6 +132,18 @@ class Settings(BaseSettings):
     groq_model_fast: str = "llama-3.1-8b-instant"
     groq_model_smart: str = "llama-3.3-70b-versatile"
 
+    # OpenRouter — fallback LLM when Groq rate-limits; budget-tier sentiment scoring.
+    # Cheapest viable model for JSON-strict sentiment: deepseek/deepseek-chat-v3.1
+    # ($0.27/M in, $1.10/M out — ~$30 for 90-day SP500 sentiment run).
+    # Smart-tier (occasional explanations): moonshotai/kimi-k2.
+    openrouter_api_key: SecretStr | None = Field(
+        default=None, description="OpenRouter — multi-model LLM gateway, used as Groq fallback"
+    )
+    # User-specified slugs. If a slug is rejected by OpenRouter (404), the adapter
+    # logs and the sentiment pipeline falls back to Groq.
+    openrouter_model_fast: str = "deepseek/deepseek-v4-flash"
+    openrouter_model_smart: str = "moonshotai/kimi-k2.5"
+
     finnhub_api_key: SecretStr = Field(
         ..., description="Finnhub — earnings calendar, insider transactions, recommendations"
     )
@@ -221,6 +233,7 @@ class Settings(BaseSettings):
             "fmp": self.fmp_api_key is not None,
             "nasdaq_data_link": self.nasdaq_data_link_api_key is not None,
             "alphavantage": self.alphavantage_api_key is not None,
+            "openrouter": self.openrouter_api_key is not None,
         }
 
 

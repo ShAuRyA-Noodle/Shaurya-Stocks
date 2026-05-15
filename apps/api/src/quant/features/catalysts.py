@@ -1,0 +1,190 @@
+"""
+Catalyst tagger — LLM extracts structured event tags from news headlines.
+
+Output: catalysts.csv with columns [symbol, date, catalyst_type, severity, summary]
+
+Catalyst types (closed vocabulary — model must pick from this list):
+    earnings_beat       earnings_miss       earnings_inline
+    guidance_raise      guidance_cut        guidance_inline
+    fda_approval        fda_rejection       clinical_data
+    upgrade             downgrade           price_target_change
+    merger              acquisition         spinoff
+    scandal             lawsuit             investigation
+    dividend_change     stock_split         buyback_announce
+    ceo_change          layoffs             restructuring
+    product_launch      product_recall
+    none                                                       (catch-all)
+
+Severity: low | medium | high
+
+Smart-tier task — runs through fallback chain (K2.5 → Flash → Pro → K2.6).
+Pass `live_only=True` on the runtime; this module produces snapshot data and
+must NEVER be replayed into a historical backtest.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import csv
+import logging
+from collections.abc import Iterable
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+log = logging.getLogger("quant.features.catalysts")
+
+CATALYST_SYSTEM = (
+    "You are a financial catalyst tagger. You read a news headline and extract a "
+    "structured event tag. Return ONLY minified JSON of the form: "
+    '{"catalyst_type": "<one of the allowed types>", '
+    '"severity": "low|medium|high", '
+    '"summary": "<one short sentence, max 100 chars>"}. '
+    "Allowed catalyst types: earnings_beat, earnings_miss, earnings_inline, "
+    "guidance_raise, guidance_cut, guidance_inline, fda_approval, fda_rejection, "
+    "clinical_data, upgrade, downgrade, price_target_change, merger, acquisition, "
+    "spinoff, scandal, lawsuit, investigation, dividend_change, stock_split, "
+    "buyback_announce, ceo_change, layoffs, restructuring, product_launch, "
+    "product_recall, none. "
+    "If no clear catalyst, return type=none, severity=low, summary='no specific catalyst'. "
+    "Do not include any prose outside the JSON."
+)
+
+_VALID_TYPES = frozenset({
+    "earnings_beat", "earnings_miss", "earnings_inline",
+    "guidance_raise", "guidance_cut", "guidance_inline",
+    "fda_approval", "fda_rejection", "clinical_data",
+    "upgrade", "downgrade", "price_target_change",
+    "merger", "acquisition", "spinoff",
+    "scandal", "lawsuit", "investigation",
+    "dividend_change", "stock_split", "buyback_announce",
+    "ceo_change", "layoffs", "restructuring",
+    "product_launch", "product_recall",
+    "none",
+})
+
+
+async def _tag_article(
+    adapter: Any,
+    *,
+    symbol: str,
+    headline: str,
+    summary: str | None,
+    sem: asyncio.Semaphore,
+) -> dict[str, Any] | None:
+    user = (
+        f"Ticker: {symbol}\n"
+        f"Headline: {headline}\n"
+        f"Summary: {summary or '(none)'}"
+    )
+    async with sem:
+        try:
+            obj, model_used = await adapter.smart_json(
+                system=CATALYST_SYSTEM,
+                user=user,
+                temperature=0.0,
+                max_tokens=800,  # K2.5 needs headroom for reasoning tokens
+            )
+        except Exception as exc:
+            log.warning("catalyst tag %s failed: %s", symbol, exc)
+            return None
+
+    ctype = obj.get("catalyst_type", "none")
+    if ctype not in _VALID_TYPES:
+        ctype = "none"
+    severity = obj.get("severity", "low")
+    if severity not in ("low", "medium", "high"):
+        severity = "low"
+    return {
+        "symbol": symbol,
+        "catalyst_type": ctype,
+        "severity": severity,
+        "summary": str(obj.get("summary", ""))[:120],
+        "model": model_used,
+    }
+
+
+async def tag_articles(
+    articles: list[dict[str, Any]],
+    *,
+    max_concurrent: int = 4,
+) -> list[dict[str, Any]]:
+    """Tag a list of news articles. Articles must have `__symbol__`, `title`, `description`."""
+    from quant.adapters.openrouter import OpenRouterAdapter
+
+    sem = asyncio.Semaphore(max_concurrent)
+    results: list[dict[str, Any]] = []
+
+    async with OpenRouterAdapter() as adapter:
+        async def _one(art: dict[str, Any]) -> None:
+            sym = str(art.get("__symbol__", "")).strip()
+            headline = str(art.get("title") or "")
+            summary = art.get("description") or art.get("snippet") or art.get("content")
+            pub = art.get("published_at") or art.get("publishedAt") or ""
+            if not sym or not headline:
+                return
+            try:
+                pub_date = datetime.fromisoformat(str(pub).replace("Z", "+00:00")).date()
+            except (ValueError, TypeError):
+                pub_date = datetime.now(UTC).date()
+            tag = await _tag_article(
+                adapter,
+                symbol=sym,
+                headline=headline,
+                summary=summary if isinstance(summary, str) else None,
+                sem=sem,
+            )
+            if tag is None:
+                return
+            tag["date"] = pub_date.isoformat()
+            results.append(tag)
+
+        await asyncio.gather(*(_one(a) for a in articles))
+
+    return results
+
+
+def write_catalysts_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fields = ["symbol", "date", "catalyst_type", "severity", "summary", "model"]
+    with p.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields)
+        w.writeheader()
+        for row in rows:
+            w.writerow({k: row.get(k, "") for k in fields})
+
+
+async def fetch_and_tag(
+    symbols: Iterable[str],
+    *,
+    days: int = 2,
+    per_symbol_limit: int = 3,
+) -> list[dict[str, Any]]:
+    """Fetch news → tag catalysts → return per-symbol rows. Live-only."""
+    from quant.features.sentiment import (
+        _fetch_marketaux_for_symbols,
+        _fetch_newsapi_for_symbols,
+    )
+
+    syms = sorted({s.strip().upper() for s in symbols if s and s.strip()})
+    if not syms:
+        return []
+
+    articles: list[dict[str, Any]] = []
+    articles.extend(
+        await _fetch_marketaux_for_symbols(syms, days=days, per_call_limit=per_symbol_limit)
+    )
+    articles.extend(
+        await _fetch_newsapi_for_symbols(syms, days=days, per_call_limit=per_symbol_limit)
+    )
+    log.info("catalyst tagger: %d articles across %d symbols", len(articles), len(syms))
+    if not articles:
+        return []
+
+    rows = await tag_articles(articles)
+    log.info("catalyst tagger: tagged %d articles", len(rows))
+    return rows
+
+
+__all__ = ["tag_articles", "write_catalysts_csv", "fetch_and_tag"]

@@ -10,10 +10,10 @@ if (typeof window !== "undefined") {
 }
 
 const LINKS = [
+  { href: "/recommendations", label: "Today" },
   { href: "/results", label: "Results" },
   { href: "/paper", label: "Paper" },
   { href: "/#philosophy", label: "Method" },
-  { href: "/#terminal", label: "Signals" },
 ]
 
 export function TopNav() {
