@@ -2,6 +2,12 @@
 # QUANT PLATFORM — .gitignore
 # ============================================================
 
+# ---- Claude Code agent scratchpads (local only) ----
+.claude/worktrees/
+.claude/sessions/
+.claude/history.jsonl
+.claude/todos/
+
 # ---- Secrets ----
 .env
 .env.local
