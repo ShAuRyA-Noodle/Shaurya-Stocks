@@ -9,10 +9,10 @@ if (typeof window !== "undefined") {
 }
 
 const STATS = [
-  { value: 8, suffix: "", label: "Sprints delivered" },
-  { value: 67, suffix: "", label: "Unit tests · green" },
+  { value: 185, suffix: "", label: "Unit tests · green" },
   { value: 11, suffix: "", label: "Real provider feeds" },
-  { value: 100, suffix: "%", label: "Type-checked, mypy --strict" },
+  { value: 718, suffix: "k", label: "Rows real OHLCV · Alpaca" },
+  { value: 100, suffix: "%", label: "Type-checked · mypy --strict" },
   { value: 0, suffix: "", label: "Synthetic data paths" },
 ]
 

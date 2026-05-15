@@ -59,7 +59,7 @@ export function TrustFootnote({ report }: TrustFootnoteProps) {
         </div>
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
-            href="https://github.com/ShAuRyA-Noodle/Shaurya-Stocks/blob/main/TRUST.md"
+            href="https://github.com/ShAuRyA-Noodle/Silky-Blade/blob/main/TRUST.md"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-5 py-3 text-sm font-mono uppercase tracking-[0.2em] text-primary hover:bg-primary/10 transition-colors"

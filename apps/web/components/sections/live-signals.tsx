@@ -5,6 +5,7 @@ import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { API_BASE_URL } from "@/lib/api"
+import type { StaticSignal } from "@/lib/oracle/load-artifacts"
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger)
@@ -18,10 +19,16 @@ type Signal = {
   date?: string
 }
 
-export function LiveSignals() {
+interface LiveSignalsProps {
+  // Pre-generated real ML signals from quant ml predict (server-loaded at build time).
+  // Used when the live API is offline. Never synthetic — always from the trained model.
+  staticSignals?: readonly StaticSignal[]
+}
+
+export function LiveSignals({ staticSignals = [] }: LiveSignalsProps) {
   const rootRef = useRef<HTMLElement>(null)
   const [signals, setSignals] = useState<Signal[] | null>(null)
-  const [err, setErr] = useState<string | null>(null)
+  const [source, setSource] = useState<"live" | "static" | null>(null)
 
   useEffect(() => {
     const ac = new AbortController()
@@ -42,19 +49,30 @@ export function LiveSignals() {
         const items = Array.isArray(data)
           ? (data as Signal[])
           : ((data as { items?: Signal[] })?.items ?? [])
-        setSignals(items)
+        if (items.length > 0) {
+          setSignals(items)
+          setSource("live")
+        } else {
+          // API online but 0 signals — fall back to static
+          setSignals(staticSignals as Signal[])
+          setSource("static")
+        }
       })
       .catch((e: Error) => {
-        if (e.name !== "AbortError") setErr(e.message)
+        if (e.name !== "AbortError") {
+          // API offline — show pre-generated real signals
+          setSignals(staticSignals as Signal[])
+          setSource("static")
+        }
       })
 
     return () => ac.abort()
-  }, [])
+  }, [staticSignals])
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const root = rootRef.current
-    if (!root || reduced) return
+    if (!root || reduced || !signals?.length) return
     const ctx = gsap.context(() => {
       gsap.fromTo(
         ".sig-card",
@@ -74,8 +92,7 @@ export function LiveSignals() {
   }, [signals])
 
   const rows = signals ?? []
-  const empty = !err && signals !== null && rows.length === 0
-  const loading = signals === null && !err
+  const loading = signals === null
 
   return (
     <section
@@ -86,65 +103,56 @@ export function LiveSignals() {
       <div className="container mx-auto max-w-7xl">
         <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
           <div>
-            <div className="text-xs font-mono tracking-[0.3em] uppercase text-primary mb-3">
-              Live · latest session
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-xs font-mono tracking-[0.3em] uppercase text-primary">
+                {source === "live" ? "Live · latest session" : "ML signals · as-of 2026-05-01"}
+              </div>
+              {source === "static" && (
+                <span className="text-[10px] font-mono tracking-[0.15em] uppercase text-muted-foreground/60 border border-border/40 rounded px-2 py-0.5">
+                  LightGBM 2026 model
+                </span>
+              )}
             </div>
             <h2 className="text-3xl md:text-5xl font-semibold tracking-[-0.02em]">
-              Today&apos;s ranked signals.
+              {source === "live" ? "Today's ranked signals." : "Ranked model signals."}
             </h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Pulled from <code className="font-mono text-primary">GET /v1/signals</code>. If the
-            API is offline the panel shows empty — we do not invent numbers.
+            {source === "live" ? (
+              <>Pulled from <code className="font-mono text-primary">GET /api/v1/signals</code>. Real-time from the live engine.</>
+            ) : (
+              <>Real BUY/HOLD/SELL from LightGBM trained on{" "}
+              <span className="text-foreground">718k rows</span> of real Alpaca S&amp;P 500 data, 2018–2026.
+              Sorted by model conviction. Zero synthetic paths.</>
+            )}
           </p>
         </div>
 
-        {err ? (
-          <div className="rounded-2xl border border-border/40 bg-card/20 p-10 text-center">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground/40 mx-auto mb-4" />
-            <div className="text-sm font-mono text-muted-foreground">
-              Signal engine offline — API not reachable.
-            </div>
-            <div className="mt-2 text-[11px] font-mono text-muted-foreground/50 tracking-[0.15em] uppercase">
-              No synthetic data shown. Start the backend to see live rankings.
-            </div>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-40 rounded-2xl border border-border/60 bg-card/40 animate-pulse"
-              />
+              <div key={i} className="h-40 rounded-2xl border border-border/60 bg-card/40 animate-pulse" />
             ))}
           </div>
-        ) : empty ? (
+        ) : rows.length === 0 ? (
           <div className="rounded-2xl border border-border/40 bg-card/20 p-10 text-center">
             <div className="w-2 h-2 rounded-full bg-primary/40 mx-auto mb-4" />
-            <div className="text-sm font-mono text-muted-foreground">
-              No signals generated yet — model has not run today.
-            </div>
-            <div className="mt-2 text-[11px] font-mono text-muted-foreground/50 tracking-[0.15em] uppercase">
-              Run <code className="text-primary">quant ml predict</code> to populate.
-            </div>
+            <div className="text-sm font-mono text-muted-foreground">No signals available.</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {rows.slice(0, 12).map((s, i) => {
               const dir = s.direction || "flat"
-              const DirIcon =
-                dir === "long" ? TrendingUp : dir === "short" ? TrendingDown : Minus
+              const DirIcon = dir === "long" ? TrendingUp : dir === "short" ? TrendingDown : Minus
               const tone =
-                dir === "long"
-                  ? "text-[color:var(--color-profit)]"
-                  : dir === "short"
-                    ? "text-destructive"
-                    : "text-muted-foreground"
+                dir === "long" ? "text-[color:var(--color-profit)]"
+                : dir === "short" ? "text-destructive"
+                : "text-muted-foreground"
               const conf = s.confidence ?? 0
               return (
                 <article
                   key={`${s.symbol}-${i}`}
-                  className="sig-card relative rounded-2xl border border-border/60 bg-card/40 backdrop-blur-xl p-5 overflow-hidden hover:border-primary/50 transition-colors"
+                  className="sig-card relative rounded-2xl border border-border/60 bg-card/40 backdrop-blur-xl p-5 overflow-hidden hover:border-primary/50 transition-colors group"
                 >
                   <div className="flex items-start justify-between">
                     <div className="text-xs font-mono text-muted-foreground">
@@ -152,20 +160,25 @@ export function LiveSignals() {
                     </div>
                     <div className={`flex items-center gap-1 text-xs font-mono ${tone}`}>
                       <DirIcon className="w-3.5 h-3.5" />
-                      {dir.toUpperCase()}
+                      {dir === "long" ? "BUY" : dir === "short" ? "SELL" : "HOLD"}
                     </div>
                   </div>
-                  <div className="mt-5 text-3xl font-semibold tracking-[-0.02em]">
+                  <div className="mt-5 text-3xl font-semibold tracking-[-0.02em] group-hover:text-primary transition-colors">
                     {s.symbol}
                   </div>
-                  <div className="mt-6">
+                  {s.date && (
+                    <div className="mt-1 text-[10px] font-mono text-muted-foreground/50">{s.date}</div>
+                  )}
+                  <div className="mt-4">
                     <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground mb-2">
-                      <span>Confidence</span>
+                      <span>Model conviction</span>
                       <span>{(conf * 100).toFixed(0)}%</span>
                     </div>
                     <div className="h-1 rounded-full bg-border overflow-hidden">
                       <div
-                        className="h-full bg-primary"
+                        className={`h-full transition-all duration-700 ${
+                          dir === "long" ? "bg-[#8AC926]" : dir === "short" ? "bg-[#FF595E]" : "bg-primary"
+                        }`}
                         style={{ width: `${Math.min(100, Math.max(0, conf * 100))}%` }}
                       />
                     </div>
@@ -174,6 +187,12 @@ export function LiveSignals() {
               )
             })}
           </div>
+        )}
+
+        {source === "static" && rows.length > 0 && (
+          <p className="mt-6 text-[11px] font-mono text-muted-foreground/40 text-center tracking-[0.15em] uppercase">
+            Signals from LightGBM 2026 model · real Alpaca data · not live-refreshed · start the API for real-time rankings
+          </p>
         )}
       </div>
     </section>
