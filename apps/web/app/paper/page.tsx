@@ -151,10 +151,10 @@ export default function PaperPage() {
                             <td className="px-4 py-3 text-right tabular-nums">{usd.format(Number(raw.avg_entry_price ?? "0"))}</td>
                             <td className="px-4 py-3 text-right tabular-nums">{usd.format(Number(p.last_price))}</td>
                             <td className="px-4 py-3 text-right tabular-nums">{usd.format(Number(raw.market_value ?? "0"))}</td>
-                            <td className={`px-4 py-3 text-right tabular-nums ${upl >= 0 ? "text-primary" : "text-red-400"}`}>
+                            <td className={`px-4 py-3 text-right tabular-nums ${upl >= 0 ? "text-[#8AC926]" : "text-[#FF595E]"}`}>
                               {usd.format(upl)}
                             </td>
-                            <td className={`px-4 py-3 text-right tabular-nums ${upl >= 0 ? "text-primary" : "text-red-400"}`}>
+                            <td className={`px-4 py-3 text-right tabular-nums ${upl >= 0 ? "text-[#8AC926]" : "text-[#FF595E]"}`}>
                               {fmtPct(String(raw.unrealized_plpc ?? "0"))}
                             </td>
                           </tr>

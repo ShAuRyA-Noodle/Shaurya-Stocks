@@ -246,7 +246,7 @@ export function EquityCurve({ points, initialCapital }: EquityCurveProps) {
                     x2={VIEW_W - PAD_RIGHT}
                     y1={t.y}
                     y2={t.y}
-                    stroke="rgba(0,240,255,0.12)"
+                    stroke="rgba(25,130,196,0.18)"
                     strokeWidth={1}
                     strokeDasharray="2 4"
                   />
@@ -272,7 +272,7 @@ export function EquityCurve({ points, initialCapital }: EquityCurveProps) {
                     x2={t.x}
                     y1={VIEW_H - PAD_BOTTOM}
                     y2={VIEW_H - PAD_BOTTOM + 5}
-                    stroke="rgba(0,240,255,0.25)"
+                    stroke="rgba(25,130,196,0.35)"
                     strokeWidth={1}
                   />
                   <text
@@ -291,8 +291,8 @@ export function EquityCurve({ points, initialCapital }: EquityCurveProps) {
             {/* Area fill */}
             <defs>
               <linearGradient id="equity-area" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,240,255,0.35)" />
-                <stop offset="100%" stopColor="rgba(0,240,255,0)" />
+                <stop offset="0%" stopColor="rgba(25,130,196,0.42)" />
+                <stop offset="100%" stopColor="rgba(25,130,196,0)" />
               </linearGradient>
             </defs>
             <path
@@ -345,12 +345,12 @@ export function EquityCurve({ points, initialCapital }: EquityCurveProps) {
               ref={pathRef}
               d={geom.path}
               fill="none"
-              stroke="oklch(0.8 0.15 195)"
-              strokeWidth={2}
+              stroke="#1982C4"
+              strokeWidth={2.5}
               strokeLinejoin="round"
               strokeLinecap="round"
               style={{
-                filter: "drop-shadow(0 0 6px rgba(0,240,255,0.45))",
+                filter: "drop-shadow(0 0 8px rgba(25,130,196,0.6))",
               }}
             />
 
@@ -362,7 +362,7 @@ export function EquityCurve({ points, initialCapital }: EquityCurveProps) {
                   x2={hover.x}
                   y1={PAD_TOP}
                   y2={VIEW_H - PAD_BOTTOM}
-                  stroke="rgba(0,240,255,0.4)"
+                  stroke="rgba(25,130,196,0.5)"
                   strokeWidth={1}
                 />
                 <circle
@@ -370,8 +370,8 @@ export function EquityCurve({ points, initialCapital }: EquityCurveProps) {
                   cy={hover.y}
                   r={5}
                   fill="oklch(0.012 0 0)"
-                  stroke="oklch(0.8 0.15 195)"
-                  strokeWidth={2}
+                  stroke="#1982C4"
+                  strokeWidth={2.5}
                 />
               </g>
             )}

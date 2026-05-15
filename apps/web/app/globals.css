@@ -3,25 +3,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ORACLE Neon-Noir Theme - Deep OLED black with neon accents */
+/* ORACLE — Vibrant Summer Dark Theme
+   Primary palette: Steel Blue #1982C4 · Yellow Green #8AC926
+   Coral #FF595E · Golden Pollen #FFCA3A · Dusty Grape #6A4C93
+   Base: OLED near-black #030304
+*/
 :root {
   /* OLED Black Canvas */
   --background: oklch(0.012 0 0); /* #030304 */
-  --foreground: oklch(0.98 0 0); /* Near white */
+  --foreground: oklch(0.98 0 0);
 
   /* Obsidian Glass Cards */
-  --card: oklch(0.08 0 0); /* Slightly lighter than background */
+  --card: oklch(0.08 0 0);
   --card-foreground: oklch(0.98 0 0);
 
   --popover: oklch(0.06 0 0);
   --popover-foreground: oklch(0.98 0 0);
 
-  /* Neon Cyan - Primary Signal */
-  --primary: oklch(0.8 0.15 195); /* #00F0FF */
-  --primary-foreground: oklch(0.012 0 0);
+  /* Steel Blue — Primary Signal #1982C4 */
+  --primary: oklch(0.53 0.14 240);
+  --primary-foreground: oklch(0.98 0 0);
 
-  /* Darker glass for secondary */
-  --secondary: oklch(0.12 0 0);
+  /* Dusty Grape — ML/Secondary #6A4C93 */
+  --secondary: oklch(0.42 0.13 310);
   --secondary-foreground: oklch(0.98 0 0);
 
   --muted: oklch(0.2 0 0);
@@ -30,78 +34,83 @@
   --accent: oklch(0.15 0 0);
   --accent-foreground: oklch(0.98 0 0);
 
-  /* Infrared Red - Loss/Destructive */
-  --destructive: oklch(0.55 0.25 25); /* #FF003C */
+  /* Vibrant Coral — Loss/Destructive #FF595E */
+  --destructive: oklch(0.66 0.21 20);
   --destructive-foreground: oklch(0.98 0 0);
 
-  /* Glass borders with slight glow */
-  --border: oklch(0.18 0 0);
+  /* Glass borders */
+  --border: oklch(0.2 0 0);
   --input: oklch(0.12 0 0);
-  --ring: oklch(0.8 0.15 195); /* Cyan glow */
+  --ring: oklch(0.53 0.14 240);
 
-  /* Custom: Bioluminescent Green - Profit */
-  --profit: oklch(0.85 0.25 135); /* #39FF14 */
+  /* Yellow Green — Profit #8AC926 */
+  --profit: oklch(0.72 0.2 130);
 
-  /* Custom: Solar Amber - Warning */
-  --warning: oklch(0.75 0.15 70); /* #FFA500 */
+  /* Golden Pollen — Warning #FFCA3A */
+  --warning: oklch(0.87 0.17 82);
 
-  /* Charts use neon palette */
-  --chart-1: oklch(0.8 0.15 195); /* Cyan */
-  --chart-2: oklch(0.85 0.25 135); /* Green */
-  --chart-3: oklch(0.55 0.25 25); /* Red */
-  --chart-4: oklch(0.75 0.15 70); /* Amber */
-  --chart-5: oklch(0.7 0.2 280); /* Purple accent */
+  /* Dusty Grape exposed for direct use */
+  --grape: oklch(0.42 0.13 310);
+
+  /* Charts */
+  --chart-1: oklch(0.53 0.14 240);  /* Steel Blue */
+  --chart-2: oklch(0.72 0.2 130);   /* Yellow Green */
+  --chart-3: oklch(0.66 0.21 20);   /* Coral */
+  --chart-4: oklch(0.87 0.17 82);   /* Golden Pollen */
+  --chart-5: oklch(0.42 0.13 310);  /* Dusty Grape */
 
   --radius: 0.75rem;
   --sidebar: oklch(0.08 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.8 0.15 195);
-  --sidebar-primary-foreground: oklch(0.012 0 0);
+  --sidebar-primary: oklch(0.53 0.14 240);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.15 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.18 0 0);
-  --sidebar-ring: oklch(0.8 0.15 195);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.53 0.14 240);
 }
 
 .dark {
-  /* Dark mode is the default, same values */
   --background: oklch(0.012 0 0);
   --foreground: oklch(0.98 0 0);
   --card: oklch(0.08 0 0);
   --card-foreground: oklch(0.98 0 0);
   --popover: oklch(0.06 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.8 0.15 195);
-  --primary-foreground: oklch(0.012 0 0);
-  --secondary: oklch(0.12 0 0);
+  --primary: oklch(0.53 0.14 240);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.42 0.13 310);
   --secondary-foreground: oklch(0.98 0 0);
   --muted: oklch(0.2 0 0);
   --muted-foreground: oklch(0.5 0 0);
   --accent: oklch(0.15 0 0);
   --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.55 0.25 25);
+  --destructive: oklch(0.66 0.21 20);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.18 0 0);
+  --border: oklch(0.2 0 0);
   --input: oklch(0.12 0 0);
-  --ring: oklch(0.8 0.15 195);
-  --chart-1: oklch(0.8 0.15 195);
-  --chart-2: oklch(0.85 0.25 135);
-  --chart-3: oklch(0.55 0.25 25);
-  --chart-4: oklch(0.75 0.15 70);
-  --chart-5: oklch(0.7 0.2 280);
+  --ring: oklch(0.53 0.14 240);
+  --profit: oklch(0.72 0.2 130);
+  --warning: oklch(0.87 0.17 82);
+  --grape: oklch(0.42 0.13 310);
+  --chart-1: oklch(0.53 0.14 240);
+  --chart-2: oklch(0.72 0.2 130);
+  --chart-3: oklch(0.66 0.21 20);
+  --chart-4: oklch(0.87 0.17 82);
+  --chart-5: oklch(0.42 0.13 310);
   --sidebar: oklch(0.06 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.8 0.15 195);
-  --sidebar-primary-foreground: oklch(0.012 0 0);
+  --sidebar-primary: oklch(0.53 0.14 240);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.15 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.18 0 0);
-  --sidebar-ring: oklch(0.8 0.15 195);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.53 0.14 240);
 }
 
 @theme inline {
-  /* Aggressive display font + Monospace data font */
-  --font-sans: "Satoshi", "Inter", system-ui, sans-serif;
+  /* Outfit — geometric, editorial, zero Inter */
+  --font-sans: "Outfit", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   --color-background: var(--background);
@@ -129,9 +138,9 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Custom colors */
   --color-profit: var(--profit);
   --color-warning: var(--warning);
+  --color-grape: var(--grape);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -154,11 +163,9 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Perlin noise grain overlay for texture */
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
   }
 
-  /* Lenis handles smoothness — native smooth would fight it */
   html {
     scroll-behavior: auto;
   }
@@ -172,74 +179,68 @@
     overscroll-behavior-y: none;
   }
 
-  /* Shared GPU + text hinting for motion sections */
   .will-change-transform {
     transform: translateZ(0);
     backface-visibility: hidden;
   }
 }
 
-/* Custom animations and effects for ORACLE UI */
+/* ─── Custom animations ─── */
 @keyframes scan-line {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(100%);
-  }
+  0%, 100% { opacity: 0; transform: translateY(-100%); }
+  50%       { opacity: 1; transform: translateY(100%); }
 }
 
 @keyframes pulse-glow {
-  0%,
-  100% {
-    opacity: 0.5;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.3);
-  }
+  0%, 100% { opacity: 0.5; filter: brightness(1); }
+  50%       { opacity: 1;   filter: brightness(1.3); }
 }
 
-.animate-scan-line {
-  animation: scan-line 2s ease-in-out infinite;
+.animate-scan-line  { animation: scan-line  2s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+/* Vibrant Summer gradient — Steel Blue to Dusty Grape */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #1982C4 0%, #6A4C93 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
-}
-
+/* Legacy alias */
 .text-gradient-cyan {
-  background: linear-gradient(to right, oklch(0.8 0.15 195), oklch(0.85 0.15 195), oklch(0.8 0.15 195));
+  background: linear-gradient(to right, #1982C4, #4db8ff, #1982C4);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
 }
 
 @keyframes scroll-dot {
-  0% { transform: translateY(-100%); }
-  60% { transform: translateY(220%); }
-  100% { transform: translateY(220%); }
+  0%      { transform: translateY(-100%); }
+  60%     { transform: translateY(220%); }
+  100%    { transform: translateY(220%); }
 }
 
 @keyframes hero-breath {
   0%, 100% { opacity: var(--breath-from, 0.4); transform: translate3d(0, 0, 0) scale(1); }
-  50% { opacity: var(--breath-to, 0.6); transform: translate3d(0, -10px, 0) scale(1.05); }
+  50%      { opacity: var(--breath-to, 0.6);  transform: translate3d(0, -10px, 0) scale(1.05); }
 }
 
-/* SplitType helpers: make sure chars animate cleanly */
+/* SplitType helpers */
 .char, .word, .line {
   display: inline-block;
   will-change: transform, opacity;
 }
-.line {
-  overflow: hidden;
-}
+.line { overflow: hidden; }
 
-/* Respect reduced motion everywhere */
+/* Page-transition fade */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: page-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -249,24 +250,17 @@
   }
 }
 
-/* Keep selection legible over neon */
+/* Selection */
 ::selection {
-  background: oklch(0.8 0.15 195 / 0.35);
+  background: rgba(25, 130, 196, 0.35);
   color: oklch(0.98 0 0);
 }
 
-/* Hide scrollbar thumb visually (keep functionality) */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.2 0 0);
-  border-radius: 10px;
+  background: oklch(0.22 0 0);
+  border-radius: 8px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.3 0 0);
-}
+::-webkit-scrollbar-thumb:hover { background: oklch(0.32 0 0); }

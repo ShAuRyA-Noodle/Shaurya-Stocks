@@ -82,7 +82,7 @@ export function OracleHero({ report }: OracleHeroProps) {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(55% 45% at 50% 30%, rgba(0,240,255,0.18) 0%, rgba(0,240,255,0.04) 45%, transparent 75%)",
+            "radial-gradient(55% 45% at 50% 30%, rgba(25,130,196,0.22) 0%, rgba(25,130,196,0.05) 45%, transparent 75%)",
         }}
       />
       <div
@@ -90,7 +90,7 @@ export function OracleHero({ report }: OracleHeroProps) {
         className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(0,240,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.4) 1px, transparent 1px)",
+            "linear-gradient(rgba(25,130,196,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(25,130,196,0.35) 1px, transparent 1px)",
           backgroundSize: "72px 72px",
           maskImage:
             "radial-gradient(70% 60% at 50% 30%, #000 0%, transparent 80%)",

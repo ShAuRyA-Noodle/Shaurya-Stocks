@@ -1,15 +1,16 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
+import { Outfit, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { SmoothScroll } from "@/components/providers/smooth-scroll"
 import { TopNav } from "@/components/nav/top-nav"
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
 })
 
 const jetbrainsMono = JetBrains_Mono({
@@ -50,11 +51,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
       >
         <SmoothScroll>
           <TopNav />
-          {children}
+          <main className="page-enter overflow-x-hidden w-full max-w-full">
+            {children}
+          </main>
         </SmoothScroll>
         <Analytics />
       </body>

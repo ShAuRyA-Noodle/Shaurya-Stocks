@@ -71,7 +71,7 @@ export function FooterScene() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(80% 60% at 50% 100%, rgba(0,240,255,0.18), transparent 70%)",
+            "radial-gradient(80% 60% at 50% 100%, rgba(25,130,196,0.22), transparent 70%)",
         }}
       />
       <div className="container mx-auto max-w-6xl text-center relative">
@@ -83,7 +83,7 @@ export function FooterScene() {
           className="text-[clamp(3rem,13vw,11rem)] font-semibold leading-[0.9] tracking-[-0.035em] text-primary [perspective:1000px] overflow-hidden"
           style={{
             textShadow:
-              "0 0 60px rgba(0,240,255,0.35), 0 0 120px rgba(0,240,255,0.18)",
+              "0 0 60px rgba(25,130,196,0.5), 0 0 120px rgba(25,130,196,0.25)",
           }}
         >
           RUN THE ORACLE
@@ -91,7 +91,7 @@ export function FooterScene() {
         <a
           ref={ctaRef}
           href="#terminal"
-          className="inline-flex items-center gap-2 mt-10 rounded-full bg-primary text-primary-foreground px-10 py-5 text-base font-semibold shadow-[0_0_40px_rgba(0,240,255,0.35)] hover:shadow-[0_0_100px_rgba(0,240,255,0.5)] transition-shadow will-change-transform"
+          className="inline-flex items-center gap-2 mt-10 rounded-full bg-primary text-primary-foreground px-10 py-5 text-base font-semibold shadow-[0_0_40px_rgba(25,130,196,0.45)] hover:shadow-[0_0_100px_rgba(25,130,196,0.65)] transition-shadow duration-300 will-change-transform"
         >
           Launch Terminal →
         </a>

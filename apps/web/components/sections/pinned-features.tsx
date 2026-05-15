@@ -169,8 +169,8 @@ export function PinnedFeatures() {
                 </div>
                 <div className="relative">
                   <div className="relative aspect-square max-w-md mx-auto">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/5 to-transparent blur-2xl" />
-                    <div className="absolute inset-6 rounded-3xl border border-primary/20 backdrop-blur-xl bg-card/40 flex flex-col items-center justify-center text-center gap-4 shadow-[0_0_60px_rgba(0,240,255,0.15)]">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-secondary/10 to-transparent blur-2xl" />
+                    <div className="absolute inset-6 rounded-3xl border border-primary/20 backdrop-blur-xl bg-card/40 flex flex-col items-center justify-center text-center gap-4 shadow-[0_0_60px_rgba(25,130,196,0.2)]">
                       <Icon className="w-12 h-12 text-primary" />
                       <div className="text-5xl font-semibold tracking-tight text-primary font-mono tabular-nums">
                         {p.stat}

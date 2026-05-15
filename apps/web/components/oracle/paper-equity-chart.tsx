@@ -102,7 +102,7 @@ export function PaperEquityChart({ points }: PaperEquityChartProps) {
             {usd.format(last)}
           </div>
         </div>
-        <div className={`text-sm font-mono tabular-nums ${totalPct >= 0 ? "text-primary" : "text-red-400"}`}>
+        <div className={`text-sm font-mono tabular-nums ${totalPct >= 0 ? "text-[#8AC926]" : "text-[#FF595E]"}`}>
           {totalPct >= 0 ? "+" : ""}
           {totalPct.toFixed(2)}% since {firstLabel}
         </div>
@@ -121,7 +121,7 @@ export function PaperEquityChart({ points }: PaperEquityChartProps) {
               x2={VIEWBOX_W - PAD_RIGHT}
               y1={yFor(eq)}
               y2={yFor(eq)}
-              stroke="rgba(0,240,255,0.12)"
+              stroke="rgba(25,130,196,0.18)"
               strokeWidth={1}
               strokeDasharray="2 4"
             />
@@ -143,7 +143,7 @@ export function PaperEquityChart({ points }: PaperEquityChartProps) {
               x2={xFor(i)}
               y1={VIEWBOX_H - PAD_BOTTOM}
               y2={VIEWBOX_H - PAD_BOTTOM + 5}
-              stroke="rgba(0,240,255,0.25)"
+              stroke="rgba(25,130,196,0.35)"
               strokeWidth={1}
             />
             <text
@@ -159,19 +159,19 @@ export function PaperEquityChart({ points }: PaperEquityChartProps) {
         ))}
         <defs>
           <linearGradient id="paper-equity-area" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgba(0,240,255,0.35)" />
-            <stop offset="100%" stopColor="rgba(0,240,255,0)" />
+            <stop offset="0%" stopColor="rgba(25,130,196,0.42)" />
+            <stop offset="100%" stopColor="rgba(25,130,196,0)" />
           </linearGradient>
         </defs>
         <path d={areaPath} fill="url(#paper-equity-area)" />
         <path
           d={linePath}
           fill="none"
-          stroke="oklch(0.8 0.15 195)"
-          strokeWidth={2}
+          stroke="#1982C4"
+          strokeWidth={2.5}
           strokeLinejoin="round"
           strokeLinecap="round"
-          style={{ filter: "drop-shadow(0 0 6px rgba(0,240,255,0.45))" }}
+          style={{ filter: "drop-shadow(0 0 8px rgba(25,130,196,0.6))" }}
         />
       </svg>
     </div>

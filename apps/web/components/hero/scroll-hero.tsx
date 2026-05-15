@@ -151,7 +151,7 @@ export function ScrollHero() {
         className="pointer-events-none absolute inset-0 -z-10 will-change-transform"
         style={{
           background:
-            "radial-gradient(60% 50% at 50% 42%, rgba(0,240,255,0.22) 0%, rgba(0,240,255,0.04) 40%, transparent 70%)",
+            "radial-gradient(60% 50% at 50% 42%, rgba(25,130,196,0.28) 0%, rgba(25,130,196,0.06) 40%, transparent 70%)",
         }}
       />
 
@@ -162,9 +162,9 @@ export function ScrollHero() {
         className="pointer-events-none absolute inset-x-0 bottom-[-20vh] h-[80vh] -z-10 will-change-transform opacity-50"
         style={{
           background:
-            "linear-gradient(transparent 0%, rgba(0,240,255,0.12) 100%), " +
-            "repeating-linear-gradient(0deg, transparent 0 39px, rgba(0,240,255,0.22) 39px 40px), " +
-            "repeating-linear-gradient(90deg, transparent 0 39px, rgba(0,240,255,0.22) 39px 40px)",
+            "linear-gradient(transparent 0%, rgba(25,130,196,0.14) 100%), " +
+            "repeating-linear-gradient(0deg, transparent 0 39px, rgba(25,130,196,0.28) 39px 40px), " +
+            "repeating-linear-gradient(90deg, transparent 0 39px, rgba(25,130,196,0.28) 39px 40px)",
           transform: "perspective(800px) rotateX(60deg)",
           transformOrigin: "50% 100%",
           maskImage:
@@ -198,7 +198,7 @@ export function ScrollHero() {
           className="text-[clamp(3.5rem,12vw,10rem)] font-bold tracking-[-0.035em] leading-[0.85] text-primary will-change-transform [perspective:1000px]"
           style={{
             textShadow:
-              "0 0 60px rgba(0,240,255,0.35), 0 0 120px rgba(0,240,255,0.18)",
+              "0 0 60px rgba(25,130,196,0.5), 0 0 120px rgba(25,130,196,0.25)",
           }}
         >
           ORACLE
@@ -216,7 +216,7 @@ export function ScrollHero() {
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="#terminal"
-            className="hero-cta group inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-4 text-base font-semibold shadow-[0_0_40px_rgba(0,240,255,0.35)] hover:shadow-[0_0_80px_rgba(0,240,255,0.55)] transition-shadow"
+            className="hero-cta group inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-4 text-base font-semibold shadow-[0_0_40px_rgba(25,130,196,0.45)] hover:shadow-[0_0_80px_rgba(25,130,196,0.65)] transition-shadow duration-300"
           >
             Enter Terminal
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

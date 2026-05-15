@@ -108,15 +108,17 @@ export function HorizontalScroll() {
           return (
             <article
               key={t.title}
-              className="group relative shrink-0 w-[78vw] md:w-[58vw] lg:w-[42vw] h-[60vh] rounded-3xl border border-border/60 bg-card/40 backdrop-blur-2xl overflow-hidden shadow-[0_0_40px_rgba(0,240,255,0.08)]"
+              className="group relative shrink-0 w-[78vw] md:w-[58vw] lg:w-[42vw] h-[60vh] rounded-3xl border border-border/60 bg-card/40 backdrop-blur-2xl overflow-hidden shadow-[0_0_40px_rgba(25,130,196,0.08)] hover:shadow-[0_0_60px_rgba(25,130,196,0.15)] transition-shadow duration-500"
             >
               <div
                 className="absolute inset-0 opacity-[0.18]"
                 style={{
                   background:
-                    i % 2 === 0
-                      ? "radial-gradient(circle at 20% 20%, rgba(0,240,255,0.25), transparent 55%)"
-                      : "radial-gradient(circle at 80% 80%, rgba(57,255,20,0.25), transparent 55%)",
+                    i % 3 === 0
+                      ? "radial-gradient(circle at 20% 20%, rgba(25,130,196,0.3), transparent 55%)"
+                      : i % 3 === 1
+                        ? "radial-gradient(circle at 80% 80%, rgba(138,201,38,0.3), transparent 55%)"
+                        : "radial-gradient(circle at 50% 20%, rgba(106,76,147,0.3), transparent 55%)",
                 }}
               />
               <div className="relative h-full flex flex-col justify-between p-10">
