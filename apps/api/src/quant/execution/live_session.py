@@ -27,7 +27,7 @@ Failure contract:
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -289,16 +289,25 @@ async def run_live_session(
     peak_equity: Decimal | None = None,
     reconcile_max_polls: int = 30,
     reconcile_interval_seconds: float = 1.0,
+    candidate_filter: Callable[[pl.DataFrame], Awaitable[pl.DataFrame]] | None = None,
 ) -> LiveSessionResult:
     """
-    Pull positions + bars → score signal → compute orders → maybe submit.
+    Pull positions + bars → score signal → [optional candidate filter] →
+    compute orders → maybe submit.
+
+    candidate_filter (optional): async function called between scoring and
+    top-K selection. Receives the full scores DataFrame, returns a modified
+    DataFrame (filtered + reweighted). Used to wire LLM sanity check + macro
+    regime multiplier into the live path without polluting the core engine.
 
     Returns a LiveSessionResult. If partial_failure=True, SELLs were
     submitted but BUYs failed — the portfolio is in an intermediate state
     and requires manual review.
     """
-    sid = session_id or f"live-{datetime.now(UTC).isoformat()}"
-    log.info("live_session %s starting (universe=%d, top_k=%d)", sid, len(universe), top_k)
+    # Defer session_id to AFTER bars fetch so we can use as_of_date for idempotency.
+    # date-only session_id means: cron retries on same trading day → same client_order_id
+    # → Alpaca dedups → no double-submission. (Previously used datetime.now → race risk.)
+    log.info("live_session starting (universe=%d, top_k=%d)", len(universe), top_k)
 
     account = await fetch_account_snapshot(broker_adapter)
     log.info("account: equity=%s status=%s paper=%s", account.equity, account.status, account.paper)
@@ -311,7 +320,25 @@ async def run_live_session(
     if not isinstance(as_of_date, date):
         raise RuntimeError(f"unable to determine as-of date from bars; got {as_of_date!r}")
 
+    sid = session_id or f"live-{as_of_date.isoformat()}"
+
     scores = signal(as_of_date, bars)
+
+    # LLM-augmentation hook — sanity check + regime multiplier applied here.
+    # The filter receives the full scored universe and returns a modified frame.
+    # Order independence: filter runs BEFORE top-K selection, so REJECT/FLAG
+    # decisions can change which names enter the portfolio.
+    if candidate_filter is not None and not scores.is_empty():
+        try:
+            scores = await candidate_filter(scores)
+            log.info("candidate_filter applied: %d names remain", scores.height)
+        except Exception as exc:
+            log.error("candidate_filter raised — proceeding without filter: %s", exc)
+            await send_alert(
+                f"candidate_filter failed in {sid}: {exc}. Trading on raw signal scores.",
+                "warning",
+            )
+
     if scores.is_empty():
         raise RuntimeError(f"signal returned no scores at as-of date {as_of_date}")
     top = scores.sort("score", descending=True).head(top_k)

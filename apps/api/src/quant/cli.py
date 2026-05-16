@@ -781,6 +781,20 @@ def paper_now(
     confirm: Annotated[
         bool, typer.Option(help="Required alongside --submit before any order is sent")
     ] = False,
+    sanity_check: Annotated[
+        bool,
+        typer.Option(
+            help="LLM pre-trade sanity check on top-25 candidates (Kimi K2.5). "
+            "REJECT drops, FLAG haircuts score×0.5. Requires OPENROUTER_API_KEY.",
+        ),
+    ] = False,
+    sanity_pool_size: Annotated[
+        int, typer.Option(help="How many top-scored candidates to sanity-check before final top-K selection")
+    ] = 25,
+    regime_json: Annotated[
+        str,
+        typer.Option(help="Path to regime.json from `features classify-regime`. If set, scales scores by regime conviction multiplier."),
+    ] = "",
 ) -> None:
     """
     Live paper-trading session: pull current Alpaca paper positions + recent
@@ -856,6 +870,56 @@ def paper_now(
     if not universe_list:
         raise typer.BadParameter(f"empty universe resolved from {universe!r}")
 
+    # Build candidate_filter closure if LLM augmentation requested.
+    # Combines: (1) regime conviction multiplier (2) pre-trade sanity check.
+    candidate_filter_fn: Any = None
+    if sanity_check or regime_json:
+        import polars as _pl
+
+        async def _llm_candidate_filter(scores: _pl.DataFrame) -> _pl.DataFrame:
+            # Step A: regime multiplier scales all conviction scores
+            mult = 1.0
+            if regime_json:
+                try:
+                    from pathlib import Path as _P
+                    from quant.features.macro_regime import regime_conviction_multiplier
+                    regime_data = json.loads(_P(regime_json).read_text(encoding="utf-8"))
+                    regime_label = str(regime_data.get("regime", "neutral"))
+                    mult = regime_conviction_multiplier(regime_label)
+                    typer.echo(f"# regime={regime_label} → conviction multiplier {mult:.2f}")
+                except Exception as exc:
+                    typer.echo(f"# regime load failed ({exc}) — skipping regime multiplier")
+
+            if mult != 1.0:
+                scores = scores.with_columns((_pl.col("score") * mult).alias("score"))
+
+            # Step B: sanity check on top-N candidates
+            if not sanity_check:
+                return scores
+
+            from quant.execution.sanity_check import (
+                filter_by_sanity,
+                review_candidates,
+            )
+
+            pool = scores.sort("score", descending=True).head(sanity_pool_size)
+            cand_tuples: list[tuple[str, float]] = [
+                (str(r["symbol"]), float(r["score"]))
+                for r in pool.iter_rows(named=True)
+            ]
+            typer.echo(f"# sanity-check: reviewing top {len(cand_tuples)} candidates via LLM")
+            results = await review_candidates(cand_tuples)
+            for r in results:
+                if r.decision != "APPROVE":
+                    typer.echo(f"  {r.decision} {r.symbol}: {r.reason[:120]}")
+            filtered = filter_by_sanity(cand_tuples, results)
+
+            return _pl.DataFrame(
+                {"symbol": [s for s, _ in filtered], "score": [sc for _, sc in filtered]}
+            )
+
+        candidate_filter_fn = _llm_candidate_filter
+
     async def _go() -> None:
         from decimal import Decimal as _Decimal
 
@@ -882,6 +946,7 @@ def paper_now(
                 alpaca_paper=settings.alpaca_paper,
                 confirm=confirm and submit,
                 risk_limits=risk_limits,
+                candidate_filter=candidate_filter_fn,
             )
         finally:
             await broker_adapter.aclose()

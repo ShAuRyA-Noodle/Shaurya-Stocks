@@ -64,12 +64,15 @@ Now every cron commit triggers auto-rebuild.
   ↓
 GitHub Actions cron fires
   ↓
-Layer 3: Classify macro regime          (1 LLM call, ~$0.001/day)
-Layer 1: Fetch + score sentiment        (~120 articles × Flash, ~$0.005/day)
-Layer 2: Tag catalysts                  (~120 articles × K2.5, ~$0.010/day)
+Layer 3: Classify macro regime          (1 K2.5 call,   ~$0.001/day)
+Layer 1: Fetch + score sentiment        (~120 × Flash,  ~$0.009/day)
+Layer 2: Tag catalysts                  (~120 × Flash,  ~$0.009/day)
 Snapshot Alpaca paper account           (free)
-Compute orders (momentum signal)        (free, Alpaca bars)
-Layer 5: Generate daily briefing        (1 LLM call, ~$0.001/day)
+Layer 4: Sanity check on top-25         (~25 K2.5 + news, ~$0.010/day)
+        — regime multiplier applied to scores
+        — REJECT/FLAG haircut applied before top-K selection
+Compute + submit orders (momentum signal) (free, Alpaca bars)
+Layer 5: Generate daily briefing        (1 K2.5 call,   ~$0.001/day)
   ↓
 Commit all artifacts to repo
   ↓
@@ -78,7 +81,13 @@ Vercel detects push → rebuilds frontend
 Phone shows fresh data within 60sec
 ```
 
-Daily LLM cost: ~$0.02. **3-month total: ~$2.40.**
+**Honest daily LLM cost: ~$0.03/day. 3-month total: ~$2-4 depending on universe size and K2.5 reasoning-token usage.**
+
+Cost-optimization choices made:
+- Layer 1 + Layer 2 use **DeepSeek V4 Flash** (cheap, JSON-strict, bulk-friendly).
+- Layer 3 + Layer 4 + Layer 5 use **Kimi K2.5** primary with V4 Flash → Pro → K2.6 fallback chain.
+- K2.5 is a reasoning model — chain-of-thought burns ~400-800 output tokens per call.
+- TOP100 universe with all 5 layers running: realistic max **~$5-8/3-mo** if K2.5 uses heavy reasoning. Soft cap: $10. Hard cap: set OpenRouter monthly limit at $15 to be safe.
 
 ## Monitoring
 

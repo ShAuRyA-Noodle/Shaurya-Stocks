@@ -143,18 +143,30 @@ jobs:
             --json-out $ARTIFACTS/paper-status.json \
             --history-csv $ARTIFACTS/paper-history.csv
 
-      # ---- LAYER 4 + execution: compute + (optional) submit orders ----
-      # Sanity-checker is wired inside paper now when --sanity-check passed.
+      # ---- LAYER 4 + execution: compute orders with regime + sanity layers ----
+      # --sanity-check: LLM reviews top-25 candidates, REJECTs catastrophic-news names
+      # --regime-json: macro regime multiplier scales conviction (risk_off → 0.5×)
+      # Sanity check requires OPENROUTER_API_KEY; auto-skipped via empty flag if missing.
       - name: Compute + submit paper orders
         if: vars.TRADING_ENABLED == 'true'
         continue-on-error: true
         run: |
           echo "TRADING_ENABLED=true — computing and submitting paper orders"
+          REGIME_FLAG=""
+          if [ -f "$ARTIFACTS/regime.json" ]; then
+            REGIME_FLAG="--regime-json $ARTIFACTS/regime.json"
+          fi
+          SANITY_FLAG=""
+          if [ -n "$OPENROUTER_API_KEY" ]; then
+            SANITY_FLAG="--sanity-check"
+          fi
           python -m quant.cli paper now \
             --signal-kind momentum \
             --lookback-days 126 \
             --top-k 5 \
             --universe SP500 \
+            $REGIME_FLAG \
+            $SANITY_FLAG \
             --submit \
             --confirm
 
@@ -163,11 +175,21 @@ jobs:
         continue-on-error: true
         run: |
           echo "TRADING_ENABLED not set — plan-only run (no orders submitted)"
+          REGIME_FLAG=""
+          if [ -f "$ARTIFACTS/regime.json" ]; then
+            REGIME_FLAG="--regime-json $ARTIFACTS/regime.json"
+          fi
+          SANITY_FLAG=""
+          if [ -n "$OPENROUTER_API_KEY" ]; then
+            SANITY_FLAG="--sanity-check"
+          fi
           python -m quant.cli paper now \
             --signal-kind momentum \
             --lookback-days 126 \
             --top-k 5 \
-            --universe DEV
+            --universe DEV \
+            $REGIME_FLAG \
+            $SANITY_FLAG
 
       # ---- LAYER 5: Daily briefing (depends on regime.json existing) ----
       - name: Layer 5 — daily briefing
