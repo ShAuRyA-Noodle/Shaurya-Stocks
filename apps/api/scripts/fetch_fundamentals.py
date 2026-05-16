@@ -80,9 +80,7 @@ async def main() -> None:
                 price_val: float | str = ""
                 mcap_val: float | str = ""
                 try:
-                    metric = await a.get_json(
-                        "/stock/metric", params={"symbol": sym, "metric": "all"}
-                    )
+                    metric = await a.get_json("/stock/metric", params={"symbol": sym, "metric": "all"})
                 except Exception as exc:
                     n_failed += 1
                     log.warning("  %s metric: %s", sym, exc)
@@ -90,15 +88,8 @@ async def main() -> None:
                     continue
                 if isinstance(metric, dict):
                     m = metric.get("metric", {}) if isinstance(metric.get("metric"), dict) else {}
-                    pe_val = (
-                        m.get("peNormalizedAnnual")
-                        or m.get("peExclExtraAnnual")
-                        or m.get("peTTM")
-                        or ""
-                    )
-                    eps_val = (
-                        m.get("epsNormalizedAnnual") or m.get("epsAnnual") or m.get("epsTTM") or ""
-                    )
+                    pe_val = m.get("peNormalizedAnnual") or m.get("peExclExtraAnnual") or m.get("peTTM") or ""
+                    eps_val = m.get("epsNormalizedAnnual") or m.get("epsAnnual") or m.get("epsTTM") or ""
                     mcap_val = m.get("marketCapitalization") or ""
                 # Price comes from the FMP /stable/quote endpoint which IS
                 # free. Failure on price doesn't kill the row — value
