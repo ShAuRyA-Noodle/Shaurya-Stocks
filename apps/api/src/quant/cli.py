@@ -956,7 +956,14 @@ def paper_now(
                 broker_adapter=broker_adapter,
                 data_adapter=data_adapter,
                 top_k=top_k,
-                lookback_days=max(lookback_days + 30, 200),
+                # Bar-fetch window must exceed the longest feature window.
+                # fetch_recent_bars adds +60 calendar days; the ML features
+                # include sma_200 (200 trading days ≈ 290 calendar). A floor of
+                # 200 fetched only ~178 trading days → sma_200 was null for every
+                # row → drop_nulls wiped all symbols → "signal returned no
+                # scores". 400 → ~460 calendar ≈ 315 trading days, giving a band
+                # of recent rows with a complete 200-day window.
+                lookback_days=max(lookback_days + 30, 400),
                 portfolio_value_override=_Decimal(str(portfolio_value)) if portfolio_value > 0 else None,
                 trading_enabled=settings.trading_enabled,
                 alpaca_paper=settings.alpaca_paper,
