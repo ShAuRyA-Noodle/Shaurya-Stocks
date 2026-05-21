@@ -175,7 +175,7 @@ jobs:
               --sentiment-csv "$ARTIFACTS/sentiment.csv" \
               --alpha 0.7 \
               --lookback-days 126 \
-              --top-k 5 \
+              --top-k 20 \
               --universe SP500 \
               $REGIME_FLAG \
               $SANITY_FLAG \
@@ -188,7 +188,7 @@ jobs:
               --signal-kind ml_bundle \
               --model-dir "$MODEL_DIR" \
               --lookback-days 126 \
-              --top-k 5 \
+              --top-k 20 \
               --universe SP500 \
               $REGIME_FLAG \
               $SANITY_FLAG \
@@ -200,7 +200,7 @@ jobs:
             python -m quant.cli paper now \
               --signal-kind momentum \
               --lookback-days 126 \
-              --top-k 5 \
+              --top-k 20 \
               --universe SP500 \
               $REGIME_FLAG \
               $SANITY_FLAG \
@@ -228,7 +228,7 @@ jobs:
               --signal-kind ml_bundle \
               --model-dir "$MODEL_DIR" \
               --lookback-days 126 \
-              --top-k 5 \
+              --top-k 20 \
               --universe DEV \
               $REGIME_FLAG \
               $SANITY_FLAG
@@ -236,7 +236,7 @@ jobs:
             python -m quant.cli paper now \
               --signal-kind momentum \
               --lookback-days 126 \
-              --top-k 5 \
+              --top-k 20 \
               --universe DEV \
               $REGIME_FLAG \
               $SANITY_FLAG
