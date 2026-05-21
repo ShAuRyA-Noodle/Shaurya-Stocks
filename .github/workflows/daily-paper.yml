@@ -47,6 +47,7 @@ jobs:
   daily-pipeline:
     name: 5-layer LLM + snapshot + (optional) rebalance
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: apps/api
@@ -110,6 +111,7 @@ jobs:
       - name: Layer 3 — classify macro regime
         if: ${{ env.OPENROUTER_API_KEY != '' }}
         continue-on-error: true
+        timeout-minutes: 3
         run: |
           python -m quant.cli features classify-regime $ARTIFACTS/regime.json || \
             echo "regime classifier failed (non-fatal)"
@@ -118,6 +120,7 @@ jobs:
       - name: Layer 1 — fetch + score sentiment
         if: ${{ env.MARKETAUX_API_KEY != '' || env.NEWSAPI_KEY != '' }}
         continue-on-error: true
+        timeout-minutes: 8
         run: |
           python -m quant.cli features fetch-sentiment \
             $UNI_FLAG \
@@ -129,6 +132,7 @@ jobs:
       - name: Layer 2 — tag catalysts
         if: ${{ env.OPENROUTER_API_KEY != '' && (env.MARKETAUX_API_KEY != '' || env.NEWSAPI_KEY != '') }}
         continue-on-error: true
+        timeout-minutes: 8
         run: |
           python -m quant.cli features fetch-catalysts \
             $UNI_FLAG \
@@ -242,6 +246,7 @@ jobs:
       - name: Layer 5 — daily briefing
         if: ${{ env.OPENROUTER_API_KEY != '' }}
         continue-on-error: true
+        timeout-minutes: 4
         run: |
           REGIME_FLAG=""
           if [ -f "$ARTIFACTS/regime.json" ]; then
